@@ -21,6 +21,7 @@
 #include "Encoder.h"
 #include "I2cDma.h"
 #include "Button.h"
+#include "Ui.h"
 
 constexpr uint32_t PORT_HEATER{GPIOA};
 constexpr uint16_t PIN_HEATER{GPIO4};
@@ -59,6 +60,7 @@ struct TaskContext {
 	Button& button;
 	CharDisplay& display;
 	DebugOut& debug;
+	ui::Ui& ui;
 	int32_t& set_temp;
 	uint32_t& tip_temp;
 	uint32_t& pid_output;
@@ -78,6 +80,7 @@ static void pid_task_func(void* data) {
 }
 
 char disp_buf[8] = {};
+ui::Buffer ui_buf;
 
 static void ui_task_func(void* data) {
 	auto& d = *static_cast<TaskContext*>(data);
@@ -90,20 +93,26 @@ static void ui_task_func(void* data) {
 		d.set_temp = 100;
 	}
 
+	d.ui.draw(ui_buf);
 	d.display.goTo(0, 0);
-	d.display.print("Set temp: ");
-	utils::uintToStr(disp_buf, d.set_temp, 3);
-	disp_buf[3] = 0xDF;
-	disp_buf[4] = 'C';
-
-	d.display.print(disp_buf);
+	d.display.printN(ui_buf.line1, 16);
 
 	d.display.goTo(1, 0);
-	d.display.print("Cur temp: ");
-	utils::uintToStr(disp_buf, d.tip_temp, 3);
-	disp_buf[3] = 0xDF;
-	disp_buf[4] = 'C';
-	d.display.print(disp_buf);
+	d.display.printN(ui_buf.line2, 16);
+	// d.display.goTo(0, 0);
+	// d.display.print("Set temp: ");
+	// utils::uintToStr(disp_buf, d.set_temp, 3);
+	// disp_buf[3] = 0xDF;
+	// disp_buf[4] = 'C';
+
+	// d.display.print(disp_buf);
+
+	// d.display.goTo(1, 0);
+	// d.display.print("Cur temp: ");
+	// utils::uintToStr(disp_buf, d.tip_temp, 3);
+	// disp_buf[3] = 0xDF;
+	// disp_buf[4] = 'C';
+	// d.display.print(disp_buf);
 	
 	d.display.flushBuffer();
 }
@@ -114,9 +123,9 @@ static void btn_task_func(void* data) {
 	auto event = d.button.update();
 
 	if (event == Button::EventType::ShortPress) {
-		d.set_temp += 1;
+		d.ui.handleEvent(ui::Event::ButtonShortPress);
 	} else if (event == Button::EventType::LongPress) {
-		d.set_temp += 10;
+		d.ui.handleEvent(ui::Event::ButtonLongPress);
 	}
 }
 
@@ -206,6 +215,8 @@ int main()
 
 	Button button(GPIOA, GPIO5, true);
 
+	ui::Ui main_ui;
+
 	int32_t set_temp = 0; 
 	uint32_t tip_temp = 0;
 	uint32_t pid_output = 0;
@@ -218,6 +229,7 @@ int main()
 		.button = button,
 		.display = display,
 		.debug = debug,
+		.ui = main_ui,
 		.set_temp = set_temp,
 		.tip_temp = tip_temp,
 		.pid_output = pid_output
