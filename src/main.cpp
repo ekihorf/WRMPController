@@ -228,7 +228,7 @@ int main()
 	Celsius tip_temp = 0_degC;
 	uint32_t pid_output = 0;
 	HeatingStatus heating_status = HeatingStatus::Off;
-	int32_t temp_increment = 5;
+	uint32_t temp_increment = 5;
 
 	DeviceState device_state {
 		.set_temp = set_temp,

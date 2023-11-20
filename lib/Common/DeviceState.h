@@ -16,5 +16,5 @@ struct DeviceState {
     uint32_t& heater_power;
     HeatingStatus& heating_status;
 
-    int32_t& temp_increment;
+    uint32_t& temp_increment;
 };

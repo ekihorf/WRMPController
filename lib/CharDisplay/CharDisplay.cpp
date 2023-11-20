@@ -61,8 +61,12 @@ void CharDisplay::print(char *str) {
 }
 
 void CharDisplay::printN(char *str, size_t n) {
-    for (size_t i = 0; i < n && *str; ++i, ++str) {
-        writeData(*str);
+    for (size_t i = 0; i < n; ++i) {
+        if (*str) {
+            writeData(*(str++));
+        } else {
+            writeData(' ');
+        }
     }
 }
 
