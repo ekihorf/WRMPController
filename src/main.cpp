@@ -45,6 +45,7 @@ static void controlTaskFunc(void* data) {
 	auto& d = *static_cast<Context*>(data);
 
 	d.heater.turnOff();
+	iwdg_reset();
 
 	switch (d.standby_sensor.update()) {
 	case StandbySensor::State::Active:
@@ -81,7 +82,6 @@ static ui::Buffer ui_buf;
 
 static void uiTaskFunc(void* data) {
 	auto& d = *static_cast<Context*>(data);
-	iwdg_reset(); // TODO: is this the right place for this?
 
 	auto delta = d.encoder.getDelta();
 	uint32_t n = abs(delta);
