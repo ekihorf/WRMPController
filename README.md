@@ -10,6 +10,7 @@ This project is a playground for learning C++ on microcontrollers, so don't expe
 
 ### What is already implemented and works well
 - AC control using triac with zero-crossing switching
+- PID temperature controller
 - User interface
 - Storing settings in EEPROM
 - Storing the last set temperature in EEPROM (uses wear levelling)
@@ -18,7 +19,6 @@ This project is a playground for learning C++ on microcontrollers, so don't expe
 
 ### What needs to be improved
 - Temperature measurement. There is a small glitch (drop) in temperature every ~15 seconds
-- Temperature control. Currently the tip temperature is controlled by a PID with 200 ms interval. It probably needs better tuning method or there is some bug in the algorithm.
 
 
 ### What is NOT going to be implemented
