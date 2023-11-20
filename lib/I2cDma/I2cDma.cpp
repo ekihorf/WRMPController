@@ -2,6 +2,7 @@
 #include <libopencm3/stm32/i2c.h>
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/dmamux.h>
+#include <libopencm3/cm3/assert.h>
 #include "Irqs.h"
 
 I2cDma::I2cDma(Config &config)
@@ -15,7 +16,16 @@ I2cDma::I2cDma(Config &config)
 	i2c_set_7bit_addr_mode(m_i2c);
 	i2c_peripheral_enable(m_i2c);
 
-    dmamux_set_dma_channel_request(DMAMUX1, m_dma_channel, DMAMUX_CxCR_DMAREQ_ID_I2C2_TX);
+    uint8_t request_id;
+    if (m_i2c == I2C1) {
+        request_id = DMAMUX_CxCR_DMAREQ_ID_I2C1_TX;
+    } else if (m_i2c == I2C2) {
+        request_id = DMAMUX_CxCR_DMAREQ_ID_I2C2_TX;
+    } else {
+        cm3_assert(false);
+    }
+
+    dmamux_set_dma_channel_request(DMAMUX1, m_dma_channel, request_id);
 
     Irqs::getDmaHandler(m_dma, m_dma_channel).connect<&I2cDma::dmaIsr>(this);
     dma_set_priority(m_dma, m_dma_channel, DMA_CCR_PL_LOW);
