@@ -10,6 +10,7 @@
 #include "Debug.h"
 #include "SysTick.h"
 #include "TempSensor.h"
+#include "Pid.h"
 
 #define PORT_HEATER GPIOA
 #define PIN_HEATER GPIO4
@@ -65,20 +66,27 @@ int main()
 	systick::setup();
 
 	TempSensor sensor(ADC1, 8, 320, 3270);
+	Pid pid(200);
+	pid.setTunings(1100, 100, 500);
+	pid.setLimits(0, 90);
 
 	DebugOut debug(USART2);
 
 	while (1) {
 		heater.turnOff();
 		systick::Delay delay(200);
+		systick::Delay(1).wait();
 		sensor.performConversion();
-
-		heater.turnOn(1);
+		uint32_t tip_temp = sensor.getTemperature();
+		uint32_t output = pid.calculate(tip_temp, 250);
+		if (tip_temp < 500) {
+			heater.turnOn(output / 5);
+		}
 
 		DebugData d {
-			.tip_temp = sensor.getTemperature(),
+			.tip_temp = tip_temp,
 			.cj_temp = 30,
-			.duty_cycle = 20
+			.duty_cycle = output
 		};
 
 		debug.sendData(d);
