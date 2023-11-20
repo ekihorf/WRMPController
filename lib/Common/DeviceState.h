@@ -28,5 +28,6 @@ struct DeviceState {
     uint32_t heater_power;
     HeatingStatus heating_status;
     bool temp_updated;
+    bool settings_updated;
     DeviceSettings settings;
 };

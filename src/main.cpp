@@ -107,6 +107,13 @@ static void ui_task_func(void* data) {
 		if (d.nvs.writeSts(d.state.set_temp.asDegreesC())) {
 			d.state.temp_updated = false;
 		}
+	} else if (d.state.settings_updated) {
+		d.state.settings_updated = false;
+		d.nvs.writeLts(&d.state.settings);
+		d.pid.setTunings(d.state.settings.pid_kp, d.state.settings.pid_ki, d.state.settings.pid_kd);
+		d.sensor.setVref(d.state.settings.tc_vref);
+		d.sensor.setAmpGain(d.state.settings.tc_amp_gain);
+		d.sensor.setOffset(d.state.settings.tc_offset);
 	}
 
 	d.ui.draw(ui_buf);
@@ -148,11 +155,9 @@ static void msg(Context& ctx, const char* text) {
 	ctx.display.printNBlocking(text, 16);
 }
 
-static constexpr uint8_t default_settings[40] = {0};
 
 static void load_settings(Context& ctx) {
-	uint8_t settings[40];
-	bool result = ctx.nvs.readLts(settings);
+	bool result = ctx.nvs.readLts(&ctx.state.settings);
 	if (result && !ctx.button.isPressedRaw()) {
 		auto sts = ctx.nvs.readSts();
 		if (sts.has_value()) {
@@ -174,7 +179,8 @@ static void load_settings(Context& ctx) {
 			;
 	}
 
-	result = ctx.nvs.writeLts(default_settings);
+	ctx.state.settings = defaults::SETTINGS;
+	result = ctx.nvs.writeLts(&ctx.state.settings);
 	if (!result) {
 		msg(ctx, "EEPROM ERROR 02");
 		while (true)
@@ -247,17 +253,15 @@ int main()
 		.vref = 3295_mV
 	};
 	TempSensor sensor(temp_config);
-	sensor.setOffset(15_degC);
 
 	Pid pid(200);
-	pid.setTunings(1100, 100, 500);
 	pid.setLimits(0, 90);
 
 	Nvs::Config nvs_config {
 		.i2c = i2c,
 		.i2c_addr = 0x50,
 		.eeprom_size = 1024,
-		.lts_size = 40,
+		.lts_size = sizeof(DeviceSettings),
 		.sts_start = 64,
 	};
 
@@ -271,6 +275,7 @@ int main()
 		.heater_power = 0,
 		.heating_status = HeatingStatus::Off,
 		.temp_updated = false,
+		.settings_updated = false,
 		.settings = defaults::SETTINGS
 	};
 
@@ -313,6 +318,12 @@ int main()
 
 	time::Delay(50_ms).wait();
 	load_settings(task_context);
+
+	pid.setTunings(device_state.settings.pid_kp, device_state.settings.pid_ki, device_state.settings.pid_kd);
+	sensor.setAmpGain(device_state.settings.tc_amp_gain);
+	sensor.setOffset(device_state.settings.tc_offset);
+	sensor.setVref(device_state.settings.tc_vref);
+
 
 	iwdg_set_period_ms(1500);
 	// iwdg_start();

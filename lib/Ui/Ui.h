@@ -31,7 +31,6 @@ namespace ui {
         char m_name[16] = {0};
         char m_unit[8] = {0};  
         int32_t& m_ref;
-        int32_t m_val;
         int32_t m_min;
         int32_t m_max;
         size_t m_scale;

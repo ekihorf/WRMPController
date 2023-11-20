@@ -16,6 +16,8 @@ public:
     void performConversion();
     Temperature getTemperature();
     void setOffset(Temperature offset);
+    void setVref(Voltage vref);
+    void setAmpGain(uint32_t amp_gain);
 
 private:
     uint32_t m_adc;

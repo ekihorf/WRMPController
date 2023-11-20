@@ -68,3 +68,11 @@ Temperature TempSensor::getTemperature() {
 void TempSensor::setOffset(Temperature offset) {
     m_offset = offset;
 }
+
+void TempSensor::setVref(Voltage vref) {
+    m_vref = vref;
+}
+
+void TempSensor::setAmpGain(uint32_t amp_gain) {
+    m_amp_gain = amp_gain;
+}

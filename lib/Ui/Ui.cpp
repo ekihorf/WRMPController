@@ -141,6 +141,7 @@ bool ui::SettingsView::draw(Buffer &buffer) {
 void ui::SettingsView::handleEvent(Event event) {
     switch (event) {
     case Event::ButtonLongPress:
+        m_parent.getDeviceState().settings_updated = true;
         m_parent.enterMainView();
         break;
     
@@ -220,7 +221,7 @@ void ui::ParameterView::setParameter(Parameter &parameter) {
 }
 
 ui::Parameter::Parameter(const char *name, const char *unit, int32_t &ref, int32_t min, int32_t max, int32_t step, size_t scale, bool show_frac)
-: m_ref{ref}, m_val{ref}, m_min{min}, m_max{max}, m_step{step}, m_scale{scale}, m_show_frac{show_frac} {
+: m_ref{ref}, m_min{min}, m_max{max}, m_step{step}, m_scale{scale}, m_show_frac{show_frac} {
     strncat(m_name, name, 15);
     strncat(m_unit, unit, 7);
 }
@@ -236,13 +237,13 @@ bool ui::Parameter::draw(Buffer &buffer)
     strncat(buffer.line1, m_name, 15);
 
     if (m_scale && m_show_frac) {
-        utils::fixedIntToStr(buffer.line2, m_val, 8, m_scale);
+        utils::fixedIntToStr(buffer.line2, m_ref, 8, m_scale);
     } else {
         int32_t scale = 1;
         for (int i = 0; i < m_scale; ++i) {
             scale *= 10;
         }
-        utils::intToStr(buffer.line2, m_val / scale, 8);
+        utils::intToStr(buffer.line2, m_ref / scale, 8);
     }
     buffer.line2[8] = ' ';
     buffer.line2[9] = '\0';
@@ -252,21 +253,20 @@ bool ui::Parameter::draw(Buffer &buffer)
 }
 
 void ui::Parameter::increment() {
-    m_val += m_step;
-    if (m_val > m_max) {
-        m_val = m_max;
+    m_ref += m_step;
+    if (m_ref > m_max) {
+        m_ref = m_max;
     }
 }
 
 void ui::Parameter::decrement() {
-    m_val -= m_step;
-    if (m_val < m_min) {
-        m_val = m_min;
+    m_ref -= m_step;
+    if (m_ref < m_min) {
+        m_ref = m_min;
     }
 }
 
 void ui::Parameter::save() {
-    if (m_val > m_max) { m_val = m_max; };
-    if (m_val < m_min) { m_val = m_min; };
-    m_ref = m_val;
+    if (m_ref > m_max) { m_ref = m_max; };
+    if (m_ref < m_min) { m_ref = m_min; };
 }
