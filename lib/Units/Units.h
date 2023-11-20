@@ -34,7 +34,7 @@ public:
     int32_t value;
 };
 
-constexpr Celsius operator "" _C(unsigned long long degrees) {
+constexpr Celsius operator "" _degC(unsigned long long degrees) {
     return Celsius(static_cast<int32_t>(degrees));
 }
 

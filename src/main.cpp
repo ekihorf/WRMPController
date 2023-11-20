@@ -11,6 +11,7 @@
 #include "AcControl.h"
 #include "Debug.h"
 #include "Time.h"
+#include "Scheduler.h"
 #include "TempSensor.h"
 #include "Pid.h"
 #include "CharDisplay.h"
@@ -52,6 +53,59 @@ static void i2c_setup() {
 	// i2c_set_speed(I2C2, i2c_speed_sm_100k, rcc_apb1_frequency / 1'000'000);
 	// i2c_set_7bit_addr_mode(I2C2);
 	// i2c_peripheral_enable(I2C2);
+}
+
+struct PidTaskData {
+	Pid& pid;
+	AcControl& heater;
+	TempSensor& sensor;
+	int32_t& set_temp;
+	uint32_t& tip_temp;
+};
+
+static void pid_task_func(void *data) {
+	auto& d = *static_cast<PidTaskData*>(data);
+
+	d.heater.turnOff();
+	time::Delay(200_us).wait();
+	d.sensor.performConversion();
+	d.tip_temp = d.sensor.getTemperature().value;
+	uint32_t output = d.pid.calculate(d.tip_temp, d.set_temp);
+	if (d.tip_temp < 500) {
+		d.heater.turnOn(output / 5);
+	}
+}
+
+struct UiTaskData {
+	Encoder& encoder;
+	CharDisplay& display;
+	int32_t& set_temp;
+	uint32_t& tip_temp;
+};
+
+char disp_buf[8] = {};
+
+static void ui_task_func(void *data) {
+	auto& d = *static_cast<UiTaskData *>(data);
+
+	d.set_temp += d.encoder.getDelta() * 5;
+	if (d.set_temp > 450) {
+		d.set_temp = 450;
+	} else if (d.set_temp < 100) {
+		d.set_temp = 100;
+	}
+
+	d.display.goTo(0, 0);
+	d.display.print("Set temp: ");
+	utils::uintToStr(disp_buf, d.set_temp, 3);
+	d.display.print(disp_buf);
+
+	d.display.goTo(1, 0);
+	d.display.print("Actual temp: ");
+	utils::uintToStr(disp_buf, d.tip_temp, 3);
+	d.display.print(disp_buf);
+
+	d.display.flushBuffer();
 }
 
 int main()
@@ -116,7 +170,7 @@ int main()
 		.vref = 3270_mV
 	};
 	TempSensor sensor(temp_config);
-	sensor.setOffset(15_C);
+	sensor.setOffset(15_degC);
 
 	Pid pid(200);
 	pid.setTunings(1100, 100, 500);
@@ -124,49 +178,51 @@ int main()
 
 	DebugOut debug(USART2, RCC_USART2);
 
-	char buf[8] = {};
 
 	int32_t set_temp = 0; 
+	uint32_t tip_temp = 0;
+
+	PidTaskData pid_task_data {
+		.pid = pid,
+		.heater = heater,
+		.sensor = sensor,
+		.set_temp = set_temp,
+		.tip_temp = tip_temp
+	};
+	
+	Task pid_task(5_ms, 200_ms, pid_task_func);
+	pid_task.setData(&pid_task_data);
+
+	UiTaskData ui_task_data {
+		.encoder = encoder,
+		.display = display,
+		.set_temp = set_temp,
+		.tip_temp = tip_temp
+	};
+
+	Task ui_task(5_ms, 100_ms, ui_task_func);
+	ui_task.setData(&ui_task_data);
+
+	Scheduler scheduler;
+	scheduler.addTask(ui_task);
+	scheduler.addTask(pid_task);
+
+	time::Delay(100_ms).wait();
+	display.print("Dupa");
+	display.flushBuffer();
+
+	time::Delay(500_ms).wait();
 
 	while (1) {
-		heater.turnOff();
-		time::Delay delay(200_ms);
-		time::Delay(1_ms).wait();
-		sensor.performConversion();
-		uint32_t tip_temp = sensor.getTemperature().value;
-		uint32_t output = pid.calculate(tip_temp, set_temp);
-		if (tip_temp < 500) {
-			heater.turnOn(output / 5);
-		}
-		
-		set_temp += encoder.getDelta() * 5;
-		if (set_temp > 450) {
-			set_temp = 450;
-		} else if (set_temp < 100) {
-			set_temp = 100;
-		}
+		scheduler.runNextTask();
+		// DebugData d {
+		// 	.tip_temp = tip_temp,
+		// 	.cj_temp = 30,
+		// 	.duty_cycle = output
+		// };
 
-		display.goTo(0, 0);
-		display.print("Set temp: ");
-		utils::uintToStr(buf, set_temp, 3);
-		display.print(buf);
+		// debug.sendData(d);
 
-		display.goTo(1, 0);
-		display.print("Actual temp: ");
-		utils::uintToStr(buf, tip_temp, 3);
-		display.print(buf);
-
-		display.flushBuffer();
-
-		DebugData d {
-			.tip_temp = tip_temp,
-			.cj_temp = 30,
-			.duty_cycle = output
-		};
-
-		debug.sendData(d);
-
-		delay.wait();
 	}
 
 	return 0;

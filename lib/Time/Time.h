@@ -12,7 +12,7 @@ namespace time {
     };
 
     void setup(Config& config);
-    uint32_t getSystickTicks();
+    uint32_t getMsTicks();
 
     class Delay {
     public:
