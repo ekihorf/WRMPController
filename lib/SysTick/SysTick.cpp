@@ -24,7 +24,7 @@ void systick::Delay::wait() {
 }
 
 bool systick::Delay::hasExpired() {
-    return m_end >= ticks;
+    return m_end <= ticks;
 }
 
 extern "C" void sys_tick_handler(void) {
