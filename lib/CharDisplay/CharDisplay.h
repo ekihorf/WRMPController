@@ -18,8 +18,9 @@ public:
     void printN(const char *str, size_t n);
     void printNBlocking(const char *str, size_t n);
     void setBacklight(bool on);
-    void defineCharacter(uint8_t address, uint8_t character[8]);
+    void defineCharacter(uint8_t address, const uint8_t character[8]);
     void writeData(uint8_t data);
+    bool isBusBusy();
 
     void flushBuffer();
 

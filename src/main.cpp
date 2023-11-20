@@ -181,6 +181,16 @@ static void loadSettings(Context& ctx) {
 	time::Delay(1_s).wait();
 }
 
+void registerDisplaySymbols(CharDisplay& display) {
+	int count = sizeof(ui::SYMBOLS_DATA) / sizeof(ui::SYMBOLS_DATA[0]);
+	for (int i = 0; i < count; ++i) {
+		display.defineCharacter(i+1, ui::SYMBOLS_DATA[i]);
+		display.flushBuffer();
+		while(display.isBusBusy())
+			;
+	}
+}
+
 int main()
 {
 	rcc_clock_setup(&rcc_clock_config[RCC_CLOCK_CONFIG_HSI_16MHZ]);
@@ -193,6 +203,8 @@ int main()
 	// Wait for the display to initialize before sending commands
 	time::Delay(50_ms).wait();
 	CharDisplay display(i2c, disp_config);
+	time::Delay(50_ms).wait();
+	registerDisplaySymbols(display);
 
 	AcControl heater(heater_config);
 	Encoder encoder(encoder_config);

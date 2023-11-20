@@ -55,11 +55,11 @@ bool ui::MainView::draw(Buffer &buffer) {
         memcpy(buffer.line1, "Standby       \337C", 16);
     }
 
-    buffer.line1[10] = 'S'; // TODO: replace with custom symbol
+    buffer.line1[10] = static_cast<uint8_t>(Symbols::SetTemperature);
     utils::uintToStr(buffer.line1 + 11, ds.set_temp.asDegreesC(), 3); 
 
     memcpy(buffer.line2, "P   %         \337C", 16);
-    buffer.line2[10] = 'T'; // TODO: replace with custom symbol
+    buffer.line2[10] = static_cast<uint8_t>(Symbols::CurrentTemperature);
     utils::uintToStr(buffer.line2 + 1, ds.heater_power, 3);
     utils::uintToStr(buffer.line2 + 11, ds.tip_temp.asDegreesC(), 3); 
     return true;

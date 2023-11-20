@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DeviceState.h"
+#include "Symbols.h"
 #include <etl/vector.h>
 
 namespace ui {

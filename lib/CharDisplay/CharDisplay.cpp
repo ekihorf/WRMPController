@@ -86,7 +86,7 @@ void CharDisplay::setBacklight(bool on) {
 // Store custom character in CGRAM
 // Valid addresses: 0x00 - 0x07
 // Character format is defined in HD44780 datasheet
-void CharDisplay::defineCharacter(uint8_t address, uint8_t character[8]) {
+void CharDisplay::defineCharacter(uint8_t address, const uint8_t character[8]) {
     writeCommand(0x40 | address * 8);
     for (int i = 0; i < 8; ++i) {
         writeData(character[i]);
@@ -105,6 +105,10 @@ void CharDisplay::writeData(uint8_t data) {
     i2cWrite(data & 0xF0);
     i2cWrite((data << 4) | E_bit | Rs_bit);
     i2cWrite(data << 4);
+}
+
+bool CharDisplay::isBusBusy(){
+    return m_i2cdma.isBusy();
 }
 
 void CharDisplay::flushBuffer() {
