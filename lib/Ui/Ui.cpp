@@ -38,29 +38,27 @@ void ui::Ui::addParameter(Parameter &param) {
     m_menu_view.addParameter(param);
 }
 
+bool ui::Ui::isAtMainView() {
+    return m_current_view == &m_main_view;
+}
+
 ui::MainView::MainView(Ui &parent) : ui::View{parent} {}
 
 bool ui::MainView::draw(Buffer &buffer) {
     auto& ds = m_parent.getDeviceState();
+
     if (ds.heating_status == HeatingStatus::On) {
-        memcpy(buffer.line1, "Power on       C", 16);
-        buffer.line1[14] = 0xDF; // degree symbol
-        buffer.line1[10] = 'S'; // TODO: replace with custom symbol
-        utils::uintToStr(buffer.line1 + 11, ds.set_temp.asDegreesC(), 3); 
+        memcpy(buffer.line1, "Power on      \337C", 16);
     } else if (ds.heating_status == HeatingStatus::Off) {
-        memcpy(buffer.line1, "Power off      C", 16);
-        buffer.line1[14] = 0xDF; // degree symbol
-        buffer.line1[10] = 'S'; // TODO: replace with custom symbol
-        utils::uintToStr(buffer.line1 + 11, ds.set_temp.asDegreesC(), 3); 
+        memcpy(buffer.line1, "Power off     \337C", 16);
     } else if (ds.heating_status == HeatingStatus::Standby) {
-        memcpy(buffer.line1, "Standby        C", 16);
-        buffer.line1[14] = 0xDF; // degree symbol
-        buffer.line1[10] = 'S'; // TODO: replace with custom symbol
-        utils::uintToStr(buffer.line1 + 11, ds.settings.standby_temp.asDegreesC(), 3); 
+        memcpy(buffer.line1, "Standby       \337C", 16);
     }
 
-    memcpy(buffer.line2, "P   %          C", 16);
-    buffer.line2[14] = 0xDF; // degree symbol
+    buffer.line1[10] = 'S'; // TODO: replace with custom symbol
+    utils::uintToStr(buffer.line1 + 11, ds.set_temp.asDegreesC(), 3); 
+
+    memcpy(buffer.line2, "P   %         \337C", 16);
     buffer.line2[10] = 'T'; // TODO: replace with custom symbol
     utils::uintToStr(buffer.line2 + 1, ds.heater_power, 3);
     utils::uintToStr(buffer.line2 + 11, ds.tip_temp.asDegreesC(), 3); 
@@ -76,11 +74,6 @@ void ui::MainView::handleEvent(Event event) {
         break;
 
     case Event::ButtonShortPress:
-        if (ds.heating_status != HeatingStatus::On) {
-            ds.heating_status = HeatingStatus::On;
-        } else {
-            ds.heating_status = HeatingStatus::Off;
-        }
         break;
     
     case Event::EncoderCW:

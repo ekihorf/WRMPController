@@ -23,6 +23,7 @@
 #include "Button.h"
 #include "Ui.h"
 #include "Nvs.h"
+#include "StandbySensor.h"
 #include "DeviceState.h"
 #include "Constants.h"
 
@@ -60,7 +61,7 @@ static void i2c_setup() {
 struct Context {
 	Pid& pid;
 	AcControl& heater;
-	TempSensor& sensor;
+	TempSensor& temp_sensor;
 	Encoder& encoder;
 	Button& button;
 	CharDisplay& display;
@@ -68,23 +69,41 @@ struct Context {
 	ui::Ui& ui;
 	DeviceState& state;
 	Nvs& nvs;
+	StandbySensor& standby_sensor;
 };
 
 static void pid_task_func(void* data) {
 	auto& d = *static_cast<Context*>(data);
 
 	d.heater.turnOff();
+
+	switch (d.standby_sensor.update()) {
+	case StandbySensor::State::Active:
+		d.state.heating_status = HeatingStatus::On;
+		break;
+	case StandbySensor::State::Standby:
+		d.state.heating_status = HeatingStatus::Standby;
+		break;
+	case StandbySensor::State::Off:
+		d.state.heating_status = HeatingStatus::Off;
+		break;
+	}
+
 	time::Delay(200_us).wait();
-	d.sensor.performConversion();
-	d.state.tip_temp = d.sensor.getTemperature();
-	d.state.heater_power = d.pid.calculate(d.state.tip_temp.asDegreesC(), d.state.set_temp.asDegreesC());
+	d.temp_sensor.performConversion();
+	d.state.tip_temp = d.temp_sensor.getTemperature();
+	Temperature temp = d.state.settings.standby_temp;
+	if (d.state.heating_status == HeatingStatus::On) {
+		temp = d.state.set_temp;
+	}
+	d.state.heater_power = d.pid.calculate(d.state.tip_temp.asDegreesC(), temp.asDegreesC());
 
 	if (d.state.tip_temp > MAX_TIP_TEMP) {
 		d.heater.turnOff();
 		return;
 	}
 
-	if (d.state.heating_status == HeatingStatus::On) {
+	if (d.state.heating_status != HeatingStatus::Off) {
 		d.heater.turnOn(d.state.heater_power / 5);
 	}
 }
@@ -111,11 +130,12 @@ static void ui_task_func(void* data) {
 		d.state.settings_updated = false;
 		d.nvs.writeLts(&d.state.settings);
 		d.pid.setTunings(d.state.settings.pid_kp, d.state.settings.pid_ki, d.state.settings.pid_kd);
-		d.sensor.setVref(d.state.settings.tc_vref);
-		d.sensor.setAmpGain(d.state.settings.tc_amp_gain);
-		d.sensor.setOffset(d.state.settings.tc_offset);
+		d.temp_sensor.setVref(d.state.settings.tc_vref);
+		d.temp_sensor.setAmpGain(d.state.settings.tc_amp_gain);
+		d.temp_sensor.setOffset(d.state.settings.tc_offset);
+		d.standby_sensor.setDelays(d.state.settings.standby_delay, d.state.settings.off_delay);
 	}
-
+	
 	d.ui.draw(ui_buf);
 
 	d.display.goTo(0, 0);
@@ -132,6 +152,9 @@ static void btn_task_func(void* data) {
 	auto event = d.button.update();
 
 	if (event == Button::EventType::ShortPress) {
+		if (d.ui.isAtMainView()) {
+			d.standby_sensor.reset();
+		}
 		d.ui.handleEvent(ui::Event::ButtonShortPress);
 	} else if (event == Button::EventType::LongPress) {
 		d.ui.handleEvent(ui::Event::ButtonLongPress);
@@ -252,7 +275,14 @@ int main()
 		.amp_gain = 340,
 		.vref = 3295_mV
 	};
-	TempSensor sensor(temp_config);
+	TempSensor temp_sensor(temp_config);
+
+	StandbySensor::Config standby_config {
+		.gpio_port = GPIOA,
+		.gpio_pin = GPIO1,
+		.active_low = true
+	};
+	StandbySensor standby_sensor(standby_config);
 
 	Pid pid(200);
 	pid.setLimits(0, 90);
@@ -305,14 +335,15 @@ int main()
 	Context task_context {
 		.pid = pid,
 		.heater = heater,
-		.sensor = sensor,
+		.temp_sensor = temp_sensor,
 		.encoder = encoder,
 		.button = button,
 		.display = display,
 		.debug = debug,
 		.ui = main_ui,
 		.state = device_state,
-		.nvs = nvs
+		.nvs = nvs,
+		.standby_sensor = standby_sensor
 	};
 
 
@@ -320,9 +351,10 @@ int main()
 	load_settings(task_context);
 
 	pid.setTunings(device_state.settings.pid_kp, device_state.settings.pid_ki, device_state.settings.pid_kd);
-	sensor.setAmpGain(device_state.settings.tc_amp_gain);
-	sensor.setOffset(device_state.settings.tc_offset);
-	sensor.setVref(device_state.settings.tc_vref);
+	temp_sensor.setAmpGain(device_state.settings.tc_amp_gain);
+	temp_sensor.setOffset(device_state.settings.tc_offset);
+	temp_sensor.setVref(device_state.settings.tc_vref);
+	standby_sensor.setDelays(device_state.settings.standby_delay, device_state.settings.off_delay);
 
 
 	iwdg_set_period_ms(1500);

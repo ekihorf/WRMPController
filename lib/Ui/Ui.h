@@ -95,6 +95,7 @@ namespace ui {
         void handleEvent(Event event);
         DeviceState& getDeviceState();
         void addParameter(Parameter& param);
+        bool isAtMainView();
 
     private:
         MainView m_main_view;
