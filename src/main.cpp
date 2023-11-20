@@ -6,11 +6,14 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/adc.h>
+#include <libopencm3/stm32/i2c.h>
 #include "AcControl.h"
 #include "Debug.h"
 #include "Time.h"
 #include "TempSensor.h"
 #include "Pid.h"
+#include "CharDisplay.h"
+#include "Utils.h"
 
 constexpr uint32_t PORT_HEATER{GPIOA};
 constexpr uint16_t PIN_HEATER{GPIO4};
@@ -40,6 +43,20 @@ static void gpio_setup()
 	// UART TX pin. Used by debug module
 	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2);
 	gpio_set_af(GPIOA, GPIO_AF1, GPIO2);
+
+	// I2C pins
+	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO11 | GPIO12);
+	gpio_set_af(GPIOA, GPIO_AF6, GPIO11 | GPIO12);
+}
+
+static void i2c_setup() {
+	rcc_periph_clock_enable(RCC_I2C2);
+	i2c_peripheral_disable(I2C2);
+	i2c_enable_analog_filter(I2C2);
+	i2c_set_digital_filter(I2C2, 0);
+	i2c_set_speed(I2C2, i2c_speed_sm_100k, rcc_apb1_frequency / 1'000'000);
+	i2c_set_7bit_addr_mode(I2C2);
+	i2c_peripheral_enable(I2C2);
 }
 
 extern "C" void exti0_1_isr(void) {
@@ -50,15 +67,22 @@ extern "C" void exti0_1_isr(void) {
 int main()
 {
 	rcc_clock_setup(&rcc_clock_config[RCC_CLOCK_CONFIG_HSI_16MHZ]);
-	gpio_setup();
 	time::setup(TIM16, RCC_TIM16);
+	gpio_setup();
+	i2c_setup();
 
+	time::Delay(200_ms).wait();
+
+	CharDisplay display(I2C2, 0x27);
+		
 	TempSensor sensor(ADC1, 8, 320, 3270);
 	Pid pid(200);
 	pid.setTunings(1100, 100, 500);
 	pid.setLimits(0, 90);
 
 	DebugOut debug(USART2, RCC_USART2);
+
+	char buf[8] = {};
 
 	while (1) {
 		heater.turnOff();
@@ -71,6 +95,16 @@ int main()
 			heater.turnOn(output / 5);
 		}
 
+		
+		display.goTo(0, 0);
+		display.print("Set temp: ");
+		utils::uintToStr(buf, 300, 3);
+		display.print(buf);
+
+		display.goTo(1, 0);
+		display.print("Actual temp: ");
+		utils::uintToStr(buf, tip_temp, 3);
+		display.print(buf);
 
 		DebugData d {
 			.tip_temp = tip_temp,
