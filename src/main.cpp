@@ -22,6 +22,7 @@
 #include "I2cDma.h"
 #include "Button.h"
 #include "Ui.h"
+#include "Nvs.h"
 #include "DeviceState.h"
 #include "Constants.h"
 
@@ -37,6 +38,7 @@ static void gpio_setup()
 	rcc_periph_clock_enable(RCC_TIM14);
 	rcc_periph_clock_enable(RCC_TIM16);
 	rcc_periph_clock_enable(RCC_TIM3);
+	rcc_periph_clock_enable(RCC_CRC);
 	nvic_enable_irq(NVIC_EXTI0_1_IRQ);
 
 	// UART TX pin. Used by debug module
@@ -55,7 +57,7 @@ static void i2c_setup() {
 	nvic_enable_irq(NVIC_DMA1_CHANNEL1_IRQ);
 }
 
-struct TaskContext {
+struct Context {
 	Pid& pid;
 	AcControl& heater;
 	TempSensor& sensor;
@@ -65,10 +67,11 @@ struct TaskContext {
 	DebugOut& debug;
 	ui::Ui& ui;
 	DeviceState& state;
+	Nvs& nvs;
 };
 
 static void pid_task_func(void* data) {
-	auto& d = *static_cast<TaskContext*>(data);
+	auto& d = *static_cast<Context*>(data);
 
 	d.heater.turnOff();
 	time::Delay(200_us).wait();
@@ -90,7 +93,7 @@ char disp_buf[8] = {};
 ui::Buffer ui_buf;
 
 static void ui_task_func(void* data) {
-	auto& d = *static_cast<TaskContext*>(data);
+	auto& d = *static_cast<Context*>(data);
 	iwdg_reset(); // TODO: is this the right place for this?
 
 	// ugly but whatever
@@ -112,7 +115,7 @@ static void ui_task_func(void* data) {
 }
 
 static void btn_task_func(void* data) {
-	auto& d = *static_cast<TaskContext*>(data);
+	auto& d = *static_cast<Context*>(data);
 
 	auto event = d.button.update();
 
@@ -124,7 +127,7 @@ static void btn_task_func(void* data) {
 }
 
 static void debug_task_func(void* data) {
-	auto& d = *static_cast<TaskContext*>(data);
+	auto& d = *static_cast<Context*>(data);
 
 	DebugData debug_data {
 		.tip_temp = static_cast<uint32_t>(d.state.tip_temp.asDegreesC()),
@@ -135,11 +138,44 @@ static void debug_task_func(void* data) {
 	d.debug.sendData(debug_data);
 }
 
+static void msg(Context& ctx, const char* text) {
+	ctx.display.goTo(0, 0);
+	ctx.display.printNBlocking(text, 16);
+}
+
+static constexpr uint8_t default_settings[40] = {0};
+
+static void load_settings(Context& ctx) {
+	uint8_t settings[40];
+	bool result = ctx.nvs.readLts(settings);
+	if (result && !ctx.button.isPressedRaw()) {
+		return;
+	}
+
+	msg(ctx, "EEPROM INIT...");
+	time::Delay(200_ms).wait();
+
+	result = ctx.nvs.erase();
+	if (!result) {
+		msg(ctx, "EEPROM ERROR 01");
+		while (true)
+			;
+	}
+
+	result = ctx.nvs.writeLts(default_settings);
+	if (!result) {
+		msg(ctx, "EEPROM ERROR 02");
+		while (true)
+			;
+	}
+
+	msg(ctx, "EEPROM INIT OK");
+	time::Delay(1_s).wait();
+}
+
 int main()
 {
 	rcc_clock_setup(&rcc_clock_config[RCC_CLOCK_CONFIG_HSI_16MHZ]);
-	iwdg_set_period_ms(1500);
-	// iwdg_start();
 	
 	gpio_setup();
 
@@ -205,30 +241,16 @@ int main()
 	pid.setTunings(1100, 100, 500);
 	pid.setLimits(0, 90);
 
-
-	/* ------ */
-
-	DeviceSettings test =  {
-		5_degC,
-		10_degC,
-		15_degC,
-		15_s,
-		18_s,
-		1000,
-		1000,
-		1000,
-		3295_mV,
-		315
+	Nvs::Config nvs_config {
+		.i2c = i2c,
+		.i2c_addr = 0x50,
+		.eeprom_size = 1024,
+		.lts_size = 40,
+		.sts_start = 64,
 	};
-	auto c = sizeof(test);
-	uint8_t eepbuf[16];
-	while(i2c.isBusy());
-	i2c.readMem(0x50, 0x00, eepbuf, 16);
 
-	/*  -----*/
-
+	Nvs nvs(nvs_config);
 	DebugOut debug(USART2, RCC_USART2);
-
 	Button button(GPIOA, GPIO5, true);
 
 	DeviceState device_state {
@@ -243,7 +265,7 @@ int main()
 
 	ui::Ui main_ui(device_state);
 
-	TaskContext task_context {
+	Context task_context {
 		.pid = pid,
 		.heater = heater,
 		.sensor = sensor,
@@ -252,8 +274,16 @@ int main()
 		.display = display,
 		.debug = debug,
 		.ui = main_ui,
-		.state = device_state
+		.state = device_state,
+		.nvs = nvs
 	};
+
+
+	time::Delay(50_ms).wait();
+	load_settings(task_context);
+
+	iwdg_set_period_ms(1500);
+	iwdg_start();
 	
 	Task pid_task(5_ms, 200_ms, pid_task_func);
 	pid_task.setData(&task_context);

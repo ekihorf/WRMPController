@@ -12,6 +12,7 @@ public:
     
     Button(uint32_t port, uint16_t pin, bool active_low);
     EventType update();
+    bool isPressedRaw();
 
 private:
     enum class State {

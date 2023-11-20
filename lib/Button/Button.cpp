@@ -64,3 +64,12 @@ Button::EventType Button::update() {
 
     return EventType::None;
 }
+
+bool Button::isPressedRaw()
+{
+    bool pressed = gpio_get(m_port, m_pin);
+    if (m_active_low) {
+        pressed = !pressed;
+    }
+    return pressed;
+}

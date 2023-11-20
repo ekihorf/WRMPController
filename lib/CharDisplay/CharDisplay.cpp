@@ -70,6 +70,13 @@ void CharDisplay::printN(const char *str, size_t n) {
     }
 }
 
+void CharDisplay::printNBlocking(const char *str, size_t n) {
+    printN(str, n);
+    waitAndFlush();
+    while (m_i2cdma.isBusy())
+        ;
+}
+
 void CharDisplay::setBacklight(bool on) {
     m_backlight_on = on;
     i2cWrite(0x00);

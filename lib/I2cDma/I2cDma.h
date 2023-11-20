@@ -13,6 +13,7 @@ public:
 
     I2cDma(Config& config);
     void startDmaWrite(uint8_t i2c_addr, uint8_t data[], uint8_t count);
+    bool writeMem(uint8_t i2c_addr, uint8_t mem_addr, uint8_t buf[], uint8_t count);
     void readMem(uint8_t i2c_addr, uint8_t mem_addr, uint8_t buf[], uint8_t count);
     bool isBusy();
 
@@ -23,4 +24,5 @@ private:
     volatile bool m_busy = false;
 
     void dmaIsr();
+    bool sendByte(uint8_t byte);
 };

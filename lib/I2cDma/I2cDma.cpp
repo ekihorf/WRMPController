@@ -50,6 +50,27 @@ void I2cDma::startDmaWrite(uint8_t i2c_addr, uint8_t data[], uint8_t count) {
     m_busy = true;
 }
 
+bool I2cDma::writeMem(uint8_t i2c_addr, uint8_t mem_addr, uint8_t buf[], uint8_t count) {
+    i2c_disable_txdma(m_i2c);
+    i2c_set_7bit_address(m_i2c, i2c_addr);
+    i2c_set_write_transfer_dir(m_i2c);
+    i2c_set_bytes_to_transfer(m_i2c, count+1);
+    i2c_enable_autoend(m_i2c);
+    i2c_send_start(m_i2c);
+
+    if (!sendByte(mem_addr)) {
+        return false;
+    }
+
+    while (count--) {
+        if (!sendByte(*buf++)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 void I2cDma::readMem(uint8_t i2c_addr, uint8_t mem_addr, uint8_t buf[], uint8_t count) {
     i2c_disable_txdma(m_i2c);
     i2c_transfer7(m_i2c, i2c_addr, &mem_addr, 1, buf, count);
@@ -64,4 +85,18 @@ void I2cDma::dmaIsr() {
     dma_disable_channel(m_dma, m_dma_channel);
     i2c_clear_stop(m_i2c);
     m_busy = false;
+}
+
+bool I2cDma::sendByte(uint8_t byte) {
+    bool wait = true;
+    while (wait) {
+            if (i2c_transmit_int_status(m_i2c)) {
+                    wait = false;
+            }
+            if (i2c_nack(m_i2c)) {
+                return false;
+            }
+    }
+    i2c_send_data(m_i2c, byte);
+    return true;
 }
