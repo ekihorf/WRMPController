@@ -2,6 +2,7 @@
 #include <libopencm3/stm32/i2c.h>
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/dmamux.h>
+#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/assert.h>
 #include "Irqs.h"
 
@@ -12,7 +13,7 @@ I2cDma::I2cDma(Config &config)
 	i2c_peripheral_disable(m_i2c);
 	i2c_enable_analog_filter(m_i2c);
 	i2c_set_digital_filter(m_i2c, 0);
-	i2c_set_speed(m_i2c, i2c_speed_sm_100k, config.apb1_freq / 1'000'000);
+	i2c_set_speed(m_i2c, i2c_speed_sm_100k, rcc_apb1_frequency / 1'000'000);
 	i2c_set_7bit_addr_mode(m_i2c);
 	i2c_peripheral_enable(m_i2c);
 

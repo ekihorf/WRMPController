@@ -7,11 +7,10 @@
 class CharDisplay {
 public:
     struct Config {
-        I2cDma& i2cdma;
         uint8_t i2c_addr;
     }; 
 
-    CharDisplay(Config& config);
+    CharDisplay(I2cDma& i2cdma, Config& config);
     void onOffControl(bool display_on, bool cursor_on, bool blink_on);
     void clear();
     void goTo(uint8_t row, uint8_t column);

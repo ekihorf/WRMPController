@@ -6,8 +6,6 @@
 class Nvs {
 public:
     struct Config {
-        /* I2C driver */
-        I2cDma& i2c;
         /* I2C address */
         uint8_t i2c_addr;
         /* 24C EEPROM size in bytes */
@@ -34,7 +32,7 @@ public:
         uint32_t sts_start;
     };
 
-    Nvs(Config& config);
+    Nvs(I2cDma& i2cdma, Config& config);
     bool erase();
     bool isBusBusy();
     bool readLts(void* buf);
@@ -43,7 +41,7 @@ public:
     bool writeSts(uint32_t value);
 
 private:
-    I2cDma& m_i2c;
+    I2cDma& m_i2cdma;
     uint8_t m_i2c_addr;
     uint32_t m_eeprom_size;
     uint32_t m_lts_size;

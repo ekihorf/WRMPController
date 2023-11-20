@@ -6,8 +6,8 @@ static constexpr uint8_t Backlight_bit = 0x08;
 static constexpr uint8_t Rs_bit = 0x01;
 static constexpr uint8_t E_bit = 0x04;
 
-CharDisplay::CharDisplay(Config& config)
-: m_i2cdma{config.i2cdma},
+CharDisplay::CharDisplay(I2cDma& i2cdma, Config& config)
+: m_i2cdma{i2cdma},
   m_i2c_addr{config.i2c_addr} {
     i2cWrite(0x00);
     waitAndFlush();

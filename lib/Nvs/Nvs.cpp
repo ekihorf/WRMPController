@@ -6,8 +6,8 @@
 static constexpr size_t PAGE_SIZE{16};
 static constexpr Duration WRITE_TIME{5_ms};
 
-Nvs::Nvs(Config &config)
-: m_i2c{config.i2c},
+Nvs::Nvs(I2cDma& i2cdma, Config &config)
+: m_i2cdma{i2cdma},
   m_i2c_addr{config.i2c_addr},
   m_eeprom_size{config.eeprom_size},
   m_lts_size{config.lts_size},
@@ -28,7 +28,7 @@ bool Nvs::erase() {
         uint32_t memaddr = i * PAGE_SIZE;
         uint8_t memaddr_low = memaddr & 0xFF;
         uint8_t memaddr_high = (memaddr >> 8) & 0x03;
-        if (!m_i2c.writeMem(m_i2c_addr | memaddr_high, memaddr_low, page_buf, PAGE_SIZE)) {
+        if (!m_i2cdma.writeMem(m_i2c_addr | memaddr_high, memaddr_low, page_buf, PAGE_SIZE)) {
             return false;
         }
         
@@ -38,7 +38,7 @@ bool Nvs::erase() {
 }
 
 bool Nvs::isBusBusy() {
-    return m_i2c.isBusy();
+    return m_i2cdma.isBusy();
 }
 
 bool Nvs::readLts(void *buf) {
@@ -54,13 +54,13 @@ bool Nvs::readLts(void *buf) {
     for (size_t i = 0; i < pages; ++i, memaddr += PAGE_SIZE) {
         uint8_t memaddr_low = memaddr & 0xFF;
         uint8_t memaddr_high = (memaddr >> 8) & 0x03;
-        m_i2c.readMem(m_i2c_addr | memaddr_high, memaddr_low, tmp_buf + memaddr, PAGE_SIZE);
+        m_i2cdma.readMem(m_i2c_addr | memaddr_high, memaddr_low, tmp_buf + memaddr, PAGE_SIZE);
     }
 
     if (rem) {
         uint8_t memaddr_low = memaddr & 0xFF;
         uint8_t memaddr_high = (memaddr >> 8) & 0x03;
-        m_i2c.readMem(m_i2c_addr | memaddr_high, memaddr_low, tmp_buf + memaddr, rem);
+        m_i2cdma.readMem(m_i2c_addr | memaddr_high, memaddr_low, tmp_buf + memaddr, rem);
     }
 
     crc_reset();
@@ -94,7 +94,7 @@ bool Nvs::writeLts(const void *buf) {
     for (size_t i = 0; i < pages; ++i, memaddr += PAGE_SIZE) {
         uint8_t memaddr_low = memaddr & 0xFF;
         uint8_t memaddr_high = (memaddr >> 8) & 0x03;
-        if (!m_i2c.writeMem(m_i2c_addr | memaddr_high, memaddr_low, tmp_buf + memaddr, PAGE_SIZE)) {
+        if (!m_i2cdma.writeMem(m_i2c_addr | memaddr_high, memaddr_low, tmp_buf + memaddr, PAGE_SIZE)) {
             return false;
         }
         time::Delay(WRITE_TIME).wait();
@@ -103,7 +103,7 @@ bool Nvs::writeLts(const void *buf) {
     if (rem) {
         uint8_t memaddr_low = memaddr & 0xFF;
         uint8_t memaddr_high = (memaddr >> 8) & 0x03;
-        if (!m_i2c.writeMem(m_i2c_addr | memaddr_high, memaddr_low, tmp_buf + memaddr, rem)) {
+        if (!m_i2cdma.writeMem(m_i2c_addr | memaddr_high, memaddr_low, tmp_buf + memaddr, rem)) {
             return false;
         }
         time::Delay(WRITE_TIME).wait();
@@ -124,7 +124,7 @@ bool Nvs::writeSts(uint32_t value) {
     uint8_t memaddr_low = memaddr & 0xFF;
     uint8_t memaddr_high = (memaddr >> 8) & 0x03;
 
-    bool result = m_i2c.writeMem(m_i2c_addr | memaddr_high, memaddr_low, reinterpret_cast<uint8_t*>(buf), 8);
+    bool result = m_i2cdma.writeMem(m_i2c_addr | memaddr_high, memaddr_low, reinterpret_cast<uint8_t*>(buf), 8);
     if (!result) {
         return false;
     }
@@ -153,7 +153,7 @@ etl::optional<uint32_t> Nvs::readSts() {
         uint32_t memaddr = m_sts_start + offset;
         uint8_t memaddr_low = memaddr & 0xFF;
         uint8_t memaddr_high = (memaddr >> 8) & 0x03;
-        m_i2c.readMem(m_i2c_addr | memaddr_high, memaddr_low, mem_buf + offset, 16);
+        m_i2cdma.readMem(m_i2c_addr | memaddr_high, memaddr_low, mem_buf + offset, 16);
     }
 
     uint32_t max_ind = 0;

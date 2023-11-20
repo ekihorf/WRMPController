@@ -6,7 +6,6 @@ class I2cDma {
 public:
     struct Config {
         uint32_t i2c;
-        uint32_t apb1_freq;
         uint32_t dma;
         uint8_t dma_channel;
     };

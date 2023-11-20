@@ -230,7 +230,6 @@ int main()
 
 	I2cDma::Config i2c_config {
 		.i2c = I2C2,
-		.apb1_freq = rcc_apb1_frequency,
 		.dma = DMA1,
 		.dma_channel = DMA_CHANNEL1
 	};
@@ -253,10 +252,9 @@ int main()
 	time::Delay(50_ms).wait();
 
 	CharDisplay::Config disp_config {
-		.i2cdma = i2c,
 		.i2c_addr = 0x27
 	};
-	CharDisplay display(disp_config);
+	CharDisplay display(i2c, disp_config);
 	display.flushBuffer();
 
 	Encoder::Config encoder_config {
@@ -288,14 +286,13 @@ int main()
 	pid.setLimits(0, 90);
 
 	Nvs::Config nvs_config {
-		.i2c = i2c,
 		.i2c_addr = 0x50,
 		.eeprom_size = 1024,
 		.lts_size = sizeof(DeviceSettings),
 		.sts_start = 64,
 	};
 
-	Nvs nvs(nvs_config);
+	Nvs nvs(i2c, nvs_config);
 	DebugOut debug(USART2, RCC_USART2);
 	Button button(GPIOA, GPIO5, true);
 
