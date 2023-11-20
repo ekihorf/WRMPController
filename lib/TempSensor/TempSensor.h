@@ -1,18 +1,26 @@
 #pragma once
 
 #include <cstdint>
+#include "Units.h"
 
 class TempSensor {
 public:
-    TempSensor(uint32_t adc, uint32_t channel, uint32_t amp_gain, uint32_t vref_mv);
+    struct Config {
+        uint32_t adc;
+        uint8_t channel;
+        uint32_t amp_gain;
+        Millivolts vref;
+    };
+
+    TempSensor(Config& config);
     void performConversion();
-    uint32_t getTemperature();
-    void setOffset(uint32_t offset);
+    Celsius getTemperature();
+    void setOffset(Celsius offset);
 
 private:
     uint32_t m_adc;
-    uint32_t m_channel;
-    uint32_t m_offset = 0;
+    uint8_t m_channel;
+    Celsius m_offset{0};
     uint32_t m_amp_gain;
-    uint32_t m_vref_mv;
+    Millivolts m_vref;
 };

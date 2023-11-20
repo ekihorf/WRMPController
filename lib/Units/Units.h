@@ -20,11 +20,31 @@ constexpr Microsecond operator "" _ms(unsigned long long ms) {
 
 class Celsius {
 public:
-    constexpr explicit Celsius(uint32_t degrees) : value{degrees} {}
+    constexpr explicit Celsius(int32_t degrees) : value{degrees} {}
+    constexpr Celsius operator-() {
+        return Celsius(-value);
+    }
+    constexpr Celsius operator+(Celsius& other) {
+        return Celsius(value + other.value);
+    }
+    constexpr Celsius operator-(Celsius& other) {
+        return Celsius(value - other.value);
+    }
+
+    int32_t value;
+};
+
+constexpr Celsius operator "" _C(unsigned long long degrees) {
+    return Celsius(static_cast<int32_t>(degrees));
+}
+
+class Millivolts {
+public:
+    constexpr explicit Millivolts(uint32_t mv) : value{mv} {}
 
     uint32_t value;
 };
 
-constexpr Celsius operator "" _C(unsigned long long degrees) {
-    return Celsius(static_cast<uint32_t>(degrees));
+constexpr Millivolts operator "" _mV(unsigned long long mv) {
+    return Millivolts(static_cast<uint32_t>(mv));
 }

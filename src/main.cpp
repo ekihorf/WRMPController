@@ -91,8 +91,16 @@ int main()
 		.gpio_af = GPIO_AF1
 	};
 	Encoder encoder(encoder_config);
-		
-	TempSensor sensor(ADC1, 8, 320, 3270);
+
+	TempSensor::Config temp_config {
+		.adc = ADC1,
+		.channel = 8,
+		.amp_gain = 315,
+		.vref = 3270_mV
+	};
+	TempSensor sensor(temp_config);
+	sensor.setOffset(15_C);
+
 	Pid pid(200);
 	pid.setTunings(1100, 100, 500);
 	pid.setLimits(0, 90);
@@ -108,7 +116,7 @@ int main()
 		time::Delay delay(200_ms);
 		time::Delay(1_ms).wait();
 		sensor.performConversion();
-		uint32_t tip_temp = sensor.getTemperature();
+		uint32_t tip_temp = sensor.getTemperature().value;
 		uint32_t output = pid.calculate(tip_temp, set_temp);
 		if (tip_temp < 500) {
 			heater.turnOn(output / 5);

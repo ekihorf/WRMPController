@@ -14,7 +14,7 @@ static uint32_t lut_tc_type_d[] = {
     8076, 8275, 8474, 8674, 8874, 9075, 9276, 9478, 9680, 9883
 };
 
-static uint32_t tcLookup(uint32_t emf_uv) {
+static Celsius tcLookup(uint32_t emf_uv) {
     uint32_t lut_size = sizeof(lut_tc_type_d) / sizeof(uint32_t);
     uint32_t i;
     for (i = 0; i < lut_size - 1; ++i) {
@@ -26,14 +26,14 @@ static uint32_t tcLookup(uint32_t emf_uv) {
     uint32_t upper = lut_tc_type_d[i];
     uint32_t lower = lut_tc_type_d[i - 1];
     uint32_t temp = 10 * i + 10 * (emf_uv - lower) / (upper - lower);
-    return temp;
+    return Celsius{static_cast<int32_t>(temp)};
 }
 
-TempSensor::TempSensor(uint32_t adc, uint32_t channel, uint32_t amp_gain, uint32_t vref_mv)
-    : m_adc{adc},
-      m_channel{channel},
-      m_amp_gain{amp_gain},
-      m_vref_mv{vref_mv} {
+TempSensor::TempSensor(Config& config)
+    : m_adc{config.adc},
+      m_channel{config.channel},
+      m_amp_gain{config.amp_gain},
+      m_vref{config.vref} {  
     rcc_periph_clock_enable(RCC_ADC);
     adc_power_off(m_adc);
     adc_enable_regulator(m_adc);
@@ -57,14 +57,14 @@ void TempSensor::performConversion() {
     while (!adc_eoc(m_adc));
 }
 
-uint32_t TempSensor::getTemperature() {
+Celsius TempSensor::getTemperature() {
     uint32_t raw = adc_read_regular(m_adc);
-    uint32_t tc_voltage = (raw * m_vref_mv) / 4096;
+    uint32_t tc_voltage = (raw * m_vref.value) / 4096;
     tc_voltage *= 1000;
     tc_voltage /= m_amp_gain;
     return tcLookup(tc_voltage) + m_offset;
 }
 
-void TempSensor::setOffset(uint32_t offset) {
+void TempSensor::setOffset(Celsius offset) {
     m_offset = offset;
 }
