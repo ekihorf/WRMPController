@@ -19,6 +19,7 @@
 #include "InterruptHandler.h"
 #include "Encoder.h"
 #include "I2cDma.h"
+#include "Button.h"
 
 constexpr uint32_t PORT_HEATER{GPIOA};
 constexpr uint16_t PIN_HEATER{GPIO4};
@@ -47,12 +48,6 @@ static void i2c_setup() {
 	rcc_periph_clock_enable(RCC_I2C2);
 	rcc_periph_clock_enable(RCC_DMA1);
 	nvic_enable_irq(NVIC_DMA1_CHANNEL1_IRQ);
-	// i2c_peripheral_disable(I2C2);
-	// i2c_enable_analog_filter(I2C2);
-	// i2c_set_digital_filter(I2C2, 0);
-	// i2c_set_speed(I2C2, i2c_speed_sm_100k, rcc_apb1_frequency / 1'000'000);
-	// i2c_set_7bit_addr_mode(I2C2);
-	// i2c_peripheral_enable(I2C2);
 }
 
 struct TaskContext {
@@ -60,6 +55,7 @@ struct TaskContext {
 	AcControl& heater;
 	TempSensor& sensor;
 	Encoder& encoder;
+	Button& button;
 	CharDisplay& display;
 	DebugOut& debug;
 	int32_t& set_temp;
@@ -103,6 +99,18 @@ static void ui_task_func(void* data) {
 	d.display.print(disp_buf);
 
 	d.display.flushBuffer();
+}
+
+static void btn_task_func(void* data) {
+	auto& d = *static_cast<TaskContext*>(data);
+
+	auto event = d.button.update();
+
+	if (event == Button::EventType::ShortPress) {
+		d.set_temp += 1;
+	} else if (event == Button::EventType::LongPress) {
+		d.set_temp += 10;
+	}
 }
 
 static void debug_task_func(void* data) {
@@ -187,6 +195,8 @@ int main()
 
 	DebugOut debug(USART2, RCC_USART2);
 
+	Button button(GPIOA, GPIO5, true);
+
 	int32_t set_temp = 0; 
 	uint32_t tip_temp = 0;
 	uint32_t pid_output = 0;
@@ -196,6 +206,7 @@ int main()
 		.heater = heater,
 		.sensor = sensor,
 		.encoder = encoder,
+		.button = button,
 		.display = display,
 		.debug = debug,
 		.set_temp = set_temp,
@@ -209,11 +220,14 @@ int main()
 	ui_task.setData(&task_context);
 	Task debug_task(5_ms, 500_ms, debug_task_func);
 	debug_task.setData(&task_context);
+	Task button_task(1_ms, 5_ms, btn_task_func);
+	button_task.setData(&task_context);
 
 	Scheduler scheduler;
 	scheduler.addTask(ui_task);
 	scheduler.addTask(pid_task);
 	scheduler.addTask(debug_task);
+	scheduler.addTask(button_task);
 
 	time::Delay(100_ms).wait();
 	display.print("INIT");
