@@ -102,6 +102,8 @@ void ui::MainView::handleEvent(Event event) {
         if (ds.heating_status == HeatingStatus::Standby) {
             ds.heating_status = HeatingStatus::On;
         }
+
+        ds.temp_updated = true;
     }
 }
 

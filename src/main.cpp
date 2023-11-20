@@ -104,6 +104,12 @@ static void ui_task_func(void* data) {
 		d.ui.handleEvent(event);
 	}
 
+	if (d.state.temp_updated) {
+		if (d.nvs.writeSts(d.state.set_temp.asDegreesC())) {
+			d.state.temp_updated = false;
+		}
+	}
+
 	d.ui.draw(ui_buf);
 
 	d.display.goTo(0, 0);
@@ -149,6 +155,10 @@ static void load_settings(Context& ctx) {
 	uint8_t settings[40];
 	bool result = ctx.nvs.readLts(settings);
 	if (result && !ctx.button.isPressedRaw()) {
+		auto sts = ctx.nvs.readSts();
+		if (sts.has_value()) {
+			ctx.state.set_temp = Temperature(sts.value());
+		}
 		return;
 	}
 
@@ -283,7 +293,7 @@ int main()
 	load_settings(task_context);
 
 	iwdg_set_period_ms(1500);
-	iwdg_start();
+	// iwdg_start();
 	
 	Task pid_task(5_ms, 200_ms, pid_task_func);
 	pid_task.setData(&task_context);

@@ -48,4 +48,7 @@ private:
     uint32_t m_eeprom_size;
     uint32_t m_lts_size;
     uint32_t m_sts_start;
+    uint32_t m_sts_index{1};
+    uint32_t m_sts_mem_pos{0};
+    bool m_sts_initialized{false};
 };

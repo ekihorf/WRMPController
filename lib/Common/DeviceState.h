@@ -31,4 +31,5 @@ struct DeviceState {
     HeatingStatus heating_status;
 
     Temperature temp_increment;
+    bool temp_updated;
 };
