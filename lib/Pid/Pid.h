@@ -1,10 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <Units.h>
 
 class Pid {
 public:
-    Pid(uint32_t interval_ms);
+    Pid(Duration interval);
     int32_t calculate(int32_t input, int32_t setpoint);
     void setTunings(int32_t kp, int32_t ki, int32_t kd);
     void setLimits(int32_t min, int32_t max);

@@ -2,7 +2,7 @@
 
 constexpr int32_t mul = 1000;
 
-Pid::Pid(uint32_t interval_ms) : m_interval_ms{interval_ms} {}
+Pid::Pid(Duration interval) : m_interval_ms{interval.asMilliseconds()} {}
 
 int32_t Pid::calculate(int32_t input, int32_t setpoint) {
     int32_t error = setpoint - input;

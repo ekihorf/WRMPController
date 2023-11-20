@@ -13,12 +13,6 @@
 #include "DeviceState.h"
 #include "Constants.h"
 
-constexpr uint32_t PORT_HEATER{GPIOA};
-constexpr uint16_t PIN_HEATER{GPIO4};
-
-constexpr uint32_t PORT_ZERO{GPIOA};
-constexpr uint16_t PIN_ZERO{GPIO0};
-
 static void gpio_setup()
 {
 	rcc_periph_clock_enable(RCC_GPIOA);
@@ -222,7 +216,7 @@ int main()
 	TempSensor temp_sensor(temp_config);
 	StandbySensor standby_sensor(standby_config);
 
-	Pid pid(200);
+	Pid pid(200_ms);
 	pid.setLimits(0, 90);
 
 	Nvs nvs(i2c, nvs_config);
