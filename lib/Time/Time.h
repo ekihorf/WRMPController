@@ -19,7 +19,12 @@ constexpr Microsecond operator "" _ms(unsigned long long ms) {
 }
 
 namespace time {
-    void setup(uint32_t timer, rcc_periph_clken timer_rcc);
+    struct Config {
+        uint32_t timer;
+        uint32_t timer_clock_freq;
+    };
+
+    void setup(Config& config);
     uint32_t getSystickTicks();
 
     class Delay {

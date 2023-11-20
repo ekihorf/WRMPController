@@ -26,6 +26,7 @@ static void gpio_setup()
 {
 	rcc_periph_clock_enable(RCC_GPIOA);
 	rcc_periph_clock_enable(RCC_TIM14);
+	rcc_periph_clock_enable(RCC_TIM16);
 	nvic_enable_irq(NVIC_EXTI0_1_IRQ);
 
 	// UART TX pin. Used by debug module
@@ -54,8 +55,15 @@ static void i2c_setup() {
 int main()
 {
 	rcc_clock_setup(&rcc_clock_config[RCC_CLOCK_CONFIG_HSI_16MHZ]);
-	time::setup(TIM16, RCC_TIM16);
+	
 	gpio_setup();
+
+	time::Config timeConfig {
+		.timer = TIM16,
+		.timer_clock_freq = rcc_apb1_frequency
+	};
+	time::setup(timeConfig);
+
 	i2c_setup();
 
 	AcControl::Config heaterConfig {
