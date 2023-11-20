@@ -110,7 +110,7 @@ bool ui::MainView::handleEvent(Event event) {
 static int32_t param1 = 5;
 static int32_t param2 = 10;
 static int32_t param3 = 16;
-ui::I32Parameter p1("width", "cm", param1, 0, 20, 1, 1);
+ui::I32Parameter p1("width", "cm", param1, -20, 20, 1, 1);
 ui::I32Parameter p2("height", "m", param2, 0, 20, 1, 1);
 ui::I32Parameter p3("length", "km", param3, 0, 20, 1, 1);
 
@@ -243,7 +243,7 @@ bool ui::I32Parameter::draw(Buffer& buffer) {
     buffer.line1[0] = '\0';
     strncat(buffer.line1, m_name, 15);
     buffer.line2[5] = '\0';
-    utils::uintToStr(buffer.line2, m_val, 5);
+    utils::intToStr(buffer.line2, m_val, 5);
 
     return true;
 }
