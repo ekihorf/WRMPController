@@ -63,14 +63,14 @@ namespace ui {
 
     class I32Parameter : public Parameter {
     public:
-        I32Parameter(char* name, char* unit, int32_t& ref, int32_t min, int32_t max, int32_t scale, int32_t step);
+        I32Parameter(char* name, char* unit, int32_t& ref, int32_t min, int32_t max, size_t scale, int32_t step);
     
     private:
         int32_t& m_ref;
         int32_t m_val;
         int32_t m_min;
         int32_t m_max;
-        int32_t m_scale;
+        size_t m_scale;
         int32_t m_step;
 
         bool draw(Buffer& buffer) override;

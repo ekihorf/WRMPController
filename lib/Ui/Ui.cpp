@@ -110,9 +110,9 @@ bool ui::MainView::handleEvent(Event event) {
 static int32_t param1 = 5;
 static int32_t param2 = 10;
 static int32_t param3 = 16;
-ui::I32Parameter p1("width", "cm", param1, -200, 200, 1, 1);
-ui::I32Parameter p2("height", "m", param2, 0, 20, 1, 1);
-ui::I32Parameter p3("length", "km", param3, 0, 20, 1, 1);
+ui::I32Parameter p1("width", "cm", param1, -200, 200, 2, 10);
+ui::I32Parameter p2("height", "m", param2, 0, 20, 0, 1);
+ui::I32Parameter p3("length", "km", param3, -20, 20, 0, 1);
 
 
 ui::SettingsView::SettingsView(Ui &parent) : ui::View{parent} {
@@ -234,7 +234,7 @@ void ui::ParameterView::setParameter(Parameter &parameter) {
     m_parameter = &parameter;
 }
 
-ui::I32Parameter::I32Parameter(char *name, char *unit, int32_t &ref, int32_t min, int32_t max, int32_t scale, int32_t step)
+ui::I32Parameter::I32Parameter(char *name, char *unit, int32_t &ref, int32_t min, int32_t max, size_t scale, int32_t step)
 : Parameter{name, unit}, m_ref{ref}, m_min{min}, m_max{max}, m_scale{scale}, m_step{step}, m_val{ref} {
 
 }
@@ -243,11 +243,14 @@ bool ui::I32Parameter::draw(Buffer& buffer) {
     buffer.line1[0] = '\0';
     strncat(buffer.line1, m_name, 15);
 
-    utils::fixedIntToStr(buffer.line2, m_val, 5, 1);
-    // utils::intToStr(buffer.line2, m_val, 5);
-    buffer.line2[5] = ' ';
-    buffer.line2[6] = '\0';
-    strncat(buffer.line2 + 6, m_unit, 5);
+    if (m_scale) {
+        utils::fixedIntToStr(buffer.line2, m_val, 8, m_scale);
+    } else {
+        utils::intToStr(buffer.line2, m_val, 8);
+    }
+    buffer.line2[8] = ' ';
+    buffer.line2[9] = '\0';
+    strncat(buffer.line2 + 9, m_unit, 7);
 
     return true;
 }
