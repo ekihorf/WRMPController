@@ -19,7 +19,7 @@ namespace defaults {
         .pid_ki = 40,
         .pid_kd = 80,
         .tc_vref = 3295_mV,
-        .tc_amp_gain = 330,
+        .tc_amp_gain = 385,
         .tc_offset = 20_degC
     };
 }
