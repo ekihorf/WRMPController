@@ -10,7 +10,7 @@ public:
         uint8_t i2c_addr;
     }; 
 
-    CharDisplay(I2cDma& i2cdma, Config& config);
+    CharDisplay(I2cDma& i2cdma, const Config& config);
     void onOffControl(bool display_on, bool cursor_on, bool blink_on);
     void clear();
     void goTo(uint8_t row, uint8_t column);

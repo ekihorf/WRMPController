@@ -1,29 +1,15 @@
 #include <libopencm3/stm32/rcc.h>
-#include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/usart.h>
-#include <libopencm3/stm32/timer.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
-#include <libopencm3/stm32/adc.h>
-#include <libopencm3/stm32/i2c.h>
-#include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/iwdg.h>
-#include "AcControl.h"
+#include "BoardConfig.h"
 #include "Debug.h"
-#include "Time.h"
 #include "Scheduler.h"
-#include "TempSensor.h"
 #include "Pid.h"
-#include "CharDisplay.h"
 #include "Utils.h"
 #include "InterruptHandler.h"
-#include "Encoder.h"
-#include "I2cDma.h"
-#include "Button.h"
 #include "Ui.h"
-#include "Nvs.h"
-#include "StandbySensor.h"
 #include "DeviceState.h"
 #include "Constants.h"
 
@@ -220,77 +206,24 @@ int main()
 	
 	gpio_setup();
 
-	time::Config timeConfig {
-		.timer = TIM16,
-		.timer_clock_freq = rcc_apb1_frequency
-	};
-	time::setup(timeConfig);
+	time::setup(time_config);
 
 	i2c_setup();
 
-	I2cDma::Config i2c_config {
-		.i2c = I2C2,
-		.dma = DMA1,
-		.dma_channel = DMA_CHANNEL1
-	};
 	I2cDma i2c(i2c_config);
-
-	AcControl::Config heater_config {
-		.timer = TIM14,
-		.timer_oc = TIM_OC1,
-		.timer_clock_freq = rcc_apb1_frequency,
-	    .zero_cross_port = GPIOA,
-		.zero_cross_pin = GPIO0,
-		.zero_cross_exti = EXTI0,
-		.heater_port = GPIOA,
-		.heater_pin = GPIO4,
-		.heater_pin_af = GPIO_AF4 
-	};
-
 	AcControl heater(heater_config);
 	
 	time::Delay(50_ms).wait();
 
-	CharDisplay::Config disp_config {
-		.i2c_addr = 0x27
-	};
 	CharDisplay display(i2c, disp_config);
 	display.flushBuffer();
 
-	Encoder::Config encoder_config {
-		.timer = TIM3,
-		.port_a = GPIOA,
-		.pin_a = GPIO6,
-		.port_b = GPIOA,
-		.pin_b = GPIO7,
-		.gpio_af = GPIO_AF1
-	};
 	Encoder encoder(encoder_config);
-
-	TempSensor::Config temp_config {
-		.adc = ADC1,
-		.channel = 8,
-		.amp_gain = 340,
-		.vref = 3295_mV
-	};
 	TempSensor temp_sensor(temp_config);
-
-	StandbySensor::Config standby_config {
-		.gpio_port = GPIOA,
-		.gpio_pin = GPIO1,
-		.active_low = true
-	};
 	StandbySensor standby_sensor(standby_config);
 
 	Pid pid(200);
 	pid.setLimits(0, 90);
-
-	Nvs::Config nvs_config {
-		.i2c_addr = 0x50,
-		.eeprom_size = 1024,
-		.lts_size = sizeof(DeviceSettings),
-		.sts_start = 64,
-	};
 
 	Nvs nvs(i2c, nvs_config);
 	DebugOut debug(USART2, RCC_USART2);

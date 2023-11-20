@@ -12,7 +12,7 @@ public:
         uint16_t gpio_af;
     };
 
-    Encoder(Config& config);
+    Encoder(const Config& config);
     int32_t getDelta();
 
 private:

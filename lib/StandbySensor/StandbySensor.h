@@ -19,7 +19,7 @@ public:
         Off
     };
 
-    StandbySensor(Config& config);
+    StandbySensor(const Config& config);
     void setDelays(Duration standby_delay, Duration off_delay);
     void reset();
     State update(); 

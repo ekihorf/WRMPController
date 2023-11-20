@@ -8,10 +8,9 @@
 namespace time {
     struct Config {
         uint32_t timer;
-        uint32_t timer_clock_freq;
     };
 
-    void setup(Config& config);
+    void setup(const Config& config);
     uint64_t getMsTicks();
 
     class Delay {

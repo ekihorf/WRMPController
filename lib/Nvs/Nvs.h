@@ -32,7 +32,7 @@ public:
         uint32_t sts_start;
     };
 
-    Nvs(I2cDma& i2cdma, Config& config);
+    Nvs(I2cDma& i2cdma, const Config& config);
     bool erase();
     bool isBusBusy();
     bool readLts(void* buf);

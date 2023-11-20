@@ -8,7 +8,6 @@ public:
     struct Config {
         uint32_t timer;
         tim_oc_id timer_oc;
-        uint32_t timer_clock_freq;
         uint32_t zero_cross_port;
         uint16_t zero_cross_pin;
         uint32_t zero_cross_exti;
@@ -17,7 +16,7 @@ public:
         uint8_t heater_pin_af;
     };
 
-    AcControl(Config& config);
+    AcControl(const Config& config);
 
     void turnOn(uint32_t on_halfcycles);
     void turnOff();

@@ -9,7 +9,7 @@
 static uint64_t g_ms_ticks = 0;
 static uint32_t g_timer;
 
-void time::setup(time::Config& config) {
+void time::setup(const time::Config& config) {
 	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
 	systick_set_reload(rcc_ahb_frequency / 1000);
 	systick_counter_enable();
@@ -17,7 +17,7 @@ void time::setup(time::Config& config) {
 
 	g_timer = config.timer;
 	timer_set_mode(g_timer, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
-	timer_set_prescaler(g_timer, config.timer_clock_freq / 1'000'000);
+	timer_set_prescaler(g_timer, rcc_apb1_frequency / 1'000'000);
     timer_disable_preload(g_timer);
     timer_continuous_mode(g_timer);
     timer_set_period(g_timer, 65535);

@@ -12,7 +12,7 @@ public:
         Voltage vref;
     };
 
-    TempSensor(Config& config);
+    TempSensor(const Config& config);
     void performConversion();
     Temperature getTemperature();
     void setOffset(Temperature offset);

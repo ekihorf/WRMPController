@@ -29,7 +29,7 @@ static Temperature tcLookup(uint32_t emf_uv) {
     return Temperature{static_cast<int32_t>(temp)};
 }
 
-TempSensor::TempSensor(Config& config)
+TempSensor::TempSensor(const Config& config)
     : m_adc{config.adc},
       m_channel{config.channel},
       m_amp_gain{config.amp_gain},

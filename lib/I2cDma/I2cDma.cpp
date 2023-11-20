@@ -6,7 +6,7 @@
 #include <libopencm3/cm3/assert.h>
 #include "Irqs.h"
 
-I2cDma::I2cDma(Config &config)
+I2cDma::I2cDma(const Config &config)
 : m_i2c{config.i2c},
   m_dma{config.dma},
   m_dma_channel{config.dma_channel} {

@@ -1,11 +1,12 @@
 #include "AcControl.h"
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/exti.h>
+#include <libopencm3/stm32/rcc.h>
 
 #include "InterruptHandler.h"
 #include "Irqs.h"
 
-AcControl::AcControl(Config& config)
+AcControl::AcControl(const Config& config)
 : m_timer{config.timer},
   m_timer_oc{config.timer_oc},
   m_exti{config.zero_cross_exti} {
@@ -20,7 +21,7 @@ AcControl::AcControl(Config& config)
 	exti_enable_request(m_exti);
 
     timer_set_mode(m_timer, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
-    timer_set_prescaler(m_timer, config.timer_clock_freq / 100000);
+    timer_set_prescaler(m_timer, rcc_apb1_frequency / 100000);
     timer_disable_preload(m_timer);
     timer_one_shot_mode(m_timer);
     timer_set_period(m_timer, 100);

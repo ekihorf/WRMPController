@@ -6,7 +6,7 @@
 static constexpr size_t PAGE_SIZE{16};
 static constexpr Duration WRITE_TIME{5_ms};
 
-Nvs::Nvs(I2cDma& i2cdma, Config &config)
+Nvs::Nvs(I2cDma& i2cdma, const Config &config)
 : m_i2cdma{i2cdma},
   m_i2c_addr{config.i2c_addr},
   m_eeprom_size{config.eeprom_size},

@@ -2,7 +2,7 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
 
-Encoder::Encoder(Config& config)
+Encoder::Encoder(const Config& config)
 : m_timer{config.timer},
   m_port_a{config.port_a}, 
   m_pin_a{config.pin_a},
