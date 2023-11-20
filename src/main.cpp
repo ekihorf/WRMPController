@@ -8,6 +8,7 @@
 #include <libopencm3/stm32/adc.h>
 #include <libopencm3/stm32/i2c.h>
 #include <libopencm3/stm32/dma.h>
+#include <libopencm3/stm32/iwdg.h>
 #include "AcControl.h"
 #include "Debug.h"
 #include "Time.h"
@@ -80,6 +81,7 @@ char disp_buf[8] = {};
 
 static void ui_task_func(void* data) {
 	auto& d = *static_cast<TaskContext*>(data);
+	iwdg_reset();
 
 	d.set_temp += d.encoder.getDelta() * 5;
 	if (d.set_temp > 450) {
@@ -91,13 +93,18 @@ static void ui_task_func(void* data) {
 	d.display.goTo(0, 0);
 	d.display.print("Set temp: ");
 	utils::uintToStr(disp_buf, d.set_temp, 3);
+	disp_buf[3] = 0xDF;
+	disp_buf[4] = 'C';
+
 	d.display.print(disp_buf);
 
 	d.display.goTo(1, 0);
-	d.display.print("Actual temp: ");
+	d.display.print("Cur temp: ");
 	utils::uintToStr(disp_buf, d.tip_temp, 3);
+	disp_buf[3] = 0xDF;
+	disp_buf[4] = 'C';
 	d.display.print(disp_buf);
-
+	
 	d.display.flushBuffer();
 }
 
@@ -128,6 +135,8 @@ static void debug_task_func(void* data) {
 int main()
 {
 	rcc_clock_setup(&rcc_clock_config[RCC_CLOCK_CONFIG_HSI_16MHZ]);
+	iwdg_set_period_ms(1500);
+	iwdg_start();
 	
 	gpio_setup();
 
@@ -161,7 +170,7 @@ int main()
 
 	AcControl heater(heater_config);
 	
-	time::Delay(200_ms).wait();
+	time::Delay(50_ms).wait();
 
 	CharDisplay::Config disp_config {
 		.i2cdma = i2c,
@@ -229,11 +238,11 @@ int main()
 	scheduler.addTask(debug_task);
 	scheduler.addTask(button_task);
 
-	time::Delay(100_ms).wait();
+	time::Delay(50_ms).wait();
 	display.print("INIT");
 	display.flushBuffer();
 
-	time::Delay(500_ms).wait();
+	time::Delay(50_ms).wait();
 
 	while (1) {
 		scheduler.runNextTask();
