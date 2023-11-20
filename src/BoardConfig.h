@@ -16,6 +16,7 @@
 #include <Nvs.h>
 #include <StandbySensor.h>
 #include <Button.h>
+#include <Debug.h>
 
 constexpr time::Config time_config {
     .timer = TIM16,
@@ -24,7 +25,10 @@ constexpr time::Config time_config {
 constexpr I2cDma::Config i2c_config {
     .i2c = I2C2,
     .dma = DMA1,
-    .dma_channel = DMA_CHANNEL1
+    .dma_channel = DMA_CHANNEL1,
+    .gpio_port = GPIOA,
+    .gpio_pins = GPIO11 | GPIO12,
+    .gpio_af = GPIO_AF6
 };
 
 constexpr AcControl::Config heater_config {
@@ -41,7 +45,6 @@ constexpr AcControl::Config heater_config {
 constexpr CharDisplay::Config disp_config {
     .i2c_addr = 0x27
 };
-
 
 constexpr Encoder::Config encoder_config {
     .timer = TIM3,
@@ -70,4 +73,17 @@ constexpr StandbySensor::Config standby_config {
     .gpio_port = GPIOA,
     .gpio_pin = GPIO1,
     .active_low = true
+};
+
+constexpr Button::Config button_config {
+    .gpio_port = GPIOA,
+    .gpio_pin = GPIO5,
+    .active_low = true
+};
+
+constexpr Debug::Config debug_config {
+    .usart = USART2,
+    .gpio_port = GPIOA,
+    .gpio_pins = GPIO2,
+    .gpio_af = GPIO_AF1
 };

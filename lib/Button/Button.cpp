@@ -6,12 +6,12 @@ static constexpr uint32_t DEBOUNCE_TIME_MS = 10;
 static constexpr uint32_t LONG_PRESS_TIME_MS = 1500;
 static constexpr uint32_t SHORT_PRESS_TIME_MS = 50;
 
-Button::Button(uint32_t port, uint16_t pin, bool active_low)
-: m_port{port},
-  m_pin{pin},
-  m_active_low{active_low} {
-    uint8_t pull = active_low ? GPIO_PUPD_PULLUP : GPIO_PUPD_PULLDOWN;
-    gpio_mode_setup(port, GPIO_MODE_INPUT, pull, pin);
+Button::Button(const Config& config)
+: m_port{config.gpio_port},
+  m_pin{config.gpio_pin},
+  m_active_low{config.active_low} {
+    uint8_t pull = m_active_low ? GPIO_PUPD_PULLUP : GPIO_PUPD_PULLDOWN;
+    gpio_mode_setup(m_port, GPIO_MODE_INPUT, pull, m_pin);
 }
 
 Button::EventType Button::update() {

@@ -5,6 +5,9 @@
 constexpr Temperature MAX_TIP_TEMP = 450_degC;
 constexpr Temperature MIN_TIP_TEMP = 100_degC;
 
+constexpr int32_t MAX_HEATER_POWER = 90;
+constexpr Duration CONTROL_PERIOD = 200_ms;
+
 namespace defaults {
     constexpr Temperature SET_TEMP = 200_degC;
     constexpr DeviceSettings SETTINGS = {

@@ -9,8 +9,14 @@ public:
         ShortPress,
         LongPress
     };
+
+    struct Config {
+        uint32_t gpio_port;
+        uint32_t gpio_pin;
+        bool active_low;
+    };
     
-    Button(uint32_t port, uint16_t pin, bool active_low);
+    Button(const Config& config);
     EventType update();
     bool isPressedRaw();
 

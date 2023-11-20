@@ -1,21 +1,24 @@
 #include "Debug.h"
 #include <libopencm3/stm32/usart.h>
+#include <libopencm3/stm32/gpio.h>
 #include "Utils.h"
 
-DebugOut::DebugOut(uint32_t usart, rcc_periph_clken usart_rcc)
-: m_usart{usart} {
-	rcc_periph_clock_enable(usart_rcc);
-    usart_set_baudrate(usart, 115200);
-	usart_set_databits(usart, 8);
-	usart_set_parity(usart, USART_PARITY_NONE);
-	usart_set_stopbits(usart, USART_CR2_STOPBITS_1);
-	usart_set_mode(usart, USART_MODE_TX);
-	usart_set_flow_control(usart, USART_FLOWCONTROL_NONE);
+Debug::Debug(const Config& config)
+: m_usart{config.usart} {
+    gpio_mode_setup(config.gpio_port, GPIO_MODE_AF, GPIO_PUPD_NONE, config.gpio_pins);
+	gpio_set_af(config.gpio_port, config.gpio_af, config.gpio_pins);
 
-	usart_enable(usart);
+    usart_set_baudrate(m_usart, 115200);
+	usart_set_databits(m_usart, 8);
+	usart_set_parity(m_usart, USART_PARITY_NONE);
+	usart_set_stopbits(m_usart, USART_CR2_STOPBITS_1);
+	usart_set_mode(m_usart, USART_MODE_TX);
+	usart_set_flow_control(m_usart, USART_FLOWCONTROL_NONE);
+
+	usart_enable(m_usart);
 };
 
-void DebugOut::sendData(DebugData& data) {
+void Debug::sendData(Data& data) {
     char buf[16];
     utils::uintToStr(buf, data.tip_temp, 3);
     buf[3] = ' ';

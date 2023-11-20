@@ -4,7 +4,6 @@
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/iwdg.h>
 #include "BoardConfig.h"
-#include "Debug.h"
 #include "Scheduler.h"
 #include "Pid.h"
 #include "Utils.h"
@@ -22,20 +21,11 @@ static void gpio_setup()
 	rcc_periph_clock_enable(RCC_CRC);
 	nvic_enable_irq(NVIC_EXTI0_1_IRQ);
 
-	// UART TX pin. Used by debug module
-	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2);
-	gpio_set_af(GPIOA, GPIO_AF1, GPIO2);
-
-	// I2C pins
-	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO11 | GPIO12);
-	gpio_set_output_options(GPIOA, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, GPIO11 | GPIO12);
-	gpio_set_af(GPIOA, GPIO_AF6, GPIO11 | GPIO12);
-}
-
-static void i2c_setup() {
 	rcc_periph_clock_enable(RCC_I2C2);
 	rcc_periph_clock_enable(RCC_DMA1);
 	nvic_enable_irq(NVIC_DMA1_CHANNEL1_IRQ);
+
+	rcc_periph_clock_enable(RCC_USART2);
 }
 
 struct Context {
@@ -45,7 +35,7 @@ struct Context {
 	Encoder& encoder;
 	Button& button;
 	CharDisplay& display;
-	DebugOut& debug;
+	Debug& debug;
 	ui::Ui& ui;
 	DeviceState& state;
 	Nvs& nvs;
@@ -144,7 +134,7 @@ static void btn_task_func(void* data) {
 static void debug_task_func(void* data) {
 	auto& d = *static_cast<Context*>(data);
 
-	DebugData debug_data {
+	Debug::Data debug_data {
 		.tip_temp = static_cast<uint32_t>(d.state.tip_temp.asDegreesC()),
 		.cj_temp = 30,
 		.duty_cycle = static_cast<uint32_t>(d.state.tip_temp.asDegreesC())
@@ -157,7 +147,6 @@ static void msg(Context& ctx, const char* text) {
 	ctx.display.goTo(0, 0);
 	ctx.display.printNBlocking(text, 16);
 }
-
 
 static void load_settings(Context& ctx) {
 	bool result = ctx.nvs.readLts(&ctx.state.settings);
@@ -202,8 +191,6 @@ int main()
 
 	time::setup(time_config);
 
-	i2c_setup();
-
 	I2cDma i2c(i2c_config);
 	AcControl heater(heater_config);
 	
@@ -216,12 +203,12 @@ int main()
 	TempSensor temp_sensor(temp_config);
 	StandbySensor standby_sensor(standby_config);
 
-	Pid pid(200_ms);
-	pid.setLimits(0, 90);
+	Pid pid(CONTROL_PERIOD);
+	pid.setLimits(0, MAX_HEATER_POWER);
 
 	Nvs nvs(i2c, nvs_config);
-	DebugOut debug(USART2, RCC_USART2);
-	Button button(GPIOA, GPIO5, true);
+	Debug debug(debug_config);
+	Button button(button_config);
 
 	DeviceState device_state {
 		.set_temp = 200_degC,
@@ -270,7 +257,6 @@ int main()
 		.standby_sensor = standby_sensor
 	};
 
-
 	time::Delay(50_ms).wait();
 	load_settings(task_context);
 
@@ -280,11 +266,10 @@ int main()
 	temp_sensor.setVref(device_state.settings.tc_vref);
 	standby_sensor.setDelays(device_state.settings.standby_delay, device_state.settings.off_delay);
 
-
 	iwdg_set_period_ms(1500);
-	// iwdg_start();
+	iwdg_start();
 	
-	Task pid_task(5_ms, 200_ms, pid_task_func);
+	Task pid_task(5_ms, CONTROL_PERIOD, pid_task_func);
 	pid_task.setData(&task_context);
 	Task ui_task(5_ms, 100_ms, ui_task_func);
 	ui_task.setData(&task_context);
@@ -298,10 +283,6 @@ int main()
 	scheduler.addTask(pid_task);
 	scheduler.addTask(debug_task);
 	scheduler.addTask(button_task);
-
-	time::Delay(50_ms).wait();
-	display.print("INIT");
-	display.flushBuffer();
 
 	time::Delay(50_ms).wait();
 

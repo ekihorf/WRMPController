@@ -3,6 +3,7 @@
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/dmamux.h>
 #include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/gpio.h>
 #include <libopencm3/cm3/assert.h>
 #include "Irqs.h"
 
@@ -10,6 +11,10 @@ I2cDma::I2cDma(const Config &config)
 : m_i2c{config.i2c},
   m_dma{config.dma},
   m_dma_channel{config.dma_channel} {
+    gpio_mode_setup(config.gpio_port, GPIO_MODE_AF, GPIO_PUPD_NONE, config.gpio_pins);
+	gpio_set_output_options(config.gpio_port, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, config.gpio_pins);
+	gpio_set_af(config.gpio_port, config.gpio_af, config.gpio_pins);
+
 	i2c_peripheral_disable(m_i2c);
 	i2c_enable_analog_filter(m_i2c);
 	i2c_set_digital_filter(m_i2c, 0);

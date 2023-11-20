@@ -8,6 +8,9 @@ public:
         uint32_t i2c;
         uint32_t dma;
         uint8_t dma_channel;
+        uint32_t gpio_port;
+        uint16_t gpio_pins;
+        uint8_t gpio_af;
     };
 
     I2cDma(const Config& config);
