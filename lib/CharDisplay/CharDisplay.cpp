@@ -103,7 +103,7 @@ void CharDisplay::flushBuffer() {
     if (m_i2c_buf_pos == 0) { return; };
 
     if (!m_i2cdma.isBusy()) {
-        m_i2cdma.startWrite(m_i2c_addr, m_i2c_buf, m_i2c_buf_pos);
+        m_i2cdma.startDmaWrite(m_i2c_addr, m_i2c_buf, m_i2c_buf_pos);
         m_i2c_buf_pos = 0;
     }
 

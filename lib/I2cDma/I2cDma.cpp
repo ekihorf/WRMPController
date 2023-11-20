@@ -36,7 +36,7 @@ I2cDma::I2cDma(Config &config)
     dma_enable_transfer_complete_interrupt(m_dma, m_dma_channel);
 }
 
-void I2cDma::startWrite(uint8_t i2c_addr, uint8_t data[], uint8_t count) {
+void I2cDma::startDmaWrite(uint8_t i2c_addr, uint8_t data[], uint8_t count) {
     i2c_set_7bit_address(m_i2c, i2c_addr);
     i2c_set_write_transfer_dir(m_i2c);
     i2c_set_bytes_to_transfer(m_i2c, count);
@@ -48,6 +48,11 @@ void I2cDma::startWrite(uint8_t i2c_addr, uint8_t data[], uint8_t count) {
     i2c_enable_txdma(m_i2c);
     i2c_send_start(m_i2c);
     m_busy = true;
+}
+
+void I2cDma::readMem(uint8_t i2c_addr, uint8_t mem_addr, uint8_t buf[], uint8_t count) {
+    i2c_disable_txdma(m_i2c);
+    i2c_transfer7(m_i2c, i2c_addr, &mem_addr, 1, buf, count);
 }
 
 bool I2cDma::isBusy() {

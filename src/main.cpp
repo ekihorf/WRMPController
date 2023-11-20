@@ -45,6 +45,7 @@ static void gpio_setup()
 
 	// I2C pins
 	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO11 | GPIO12);
+	gpio_set_output_options(GPIOA, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, GPIO11 | GPIO12);
 	gpio_set_af(GPIOA, GPIO_AF6, GPIO11 | GPIO12);
 }
 
@@ -138,7 +139,7 @@ int main()
 {
 	rcc_clock_setup(&rcc_clock_config[RCC_CLOCK_CONFIG_HSI_16MHZ]);
 	iwdg_set_period_ms(1500);
-	iwdg_start();
+	// iwdg_start();
 	
 	gpio_setup();
 
@@ -203,6 +204,28 @@ int main()
 	Pid pid(200);
 	pid.setTunings(1100, 100, 500);
 	pid.setLimits(0, 90);
+
+
+	/* ------ */
+
+	DeviceSettings test =  {
+		5_degC,
+		10_degC,
+		15_degC,
+		15_s,
+		18_s,
+		1000,
+		1000,
+		1000,
+		3295_mV,
+		315
+	};
+	auto c = sizeof(test);
+	uint8_t eepbuf[16];
+	while(i2c.isBusy());
+	i2c.readMem(0x50, 0x00, eepbuf, 16);
+
+	/*  -----*/
 
 	DebugOut debug(USART2, RCC_USART2);
 
