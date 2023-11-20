@@ -14,8 +14,8 @@ public:
 
     struct Data {
         uint32_t tip_temp;
-        uint32_t cj_temp;
-        uint32_t duty_cycle;
+        uint32_t set_temp;
+        uint32_t power;
     };
 
 

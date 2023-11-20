@@ -135,8 +135,8 @@ static void debugTaskFunc(void* data) {
 
 	Debug::Data debug_data {
 		.tip_temp = static_cast<uint32_t>(d.state.tip_temp.asDegreesC()),
-		.cj_temp = 30,
-		.duty_cycle = static_cast<uint32_t>(d.state.tip_temp.asDegreesC())
+		.set_temp = static_cast<uint32_t>(d.state.set_temp.asDegreesC()),
+		.power = d.state.heater_power
 	};
 
 	d.debug.sendData(debug_data);
@@ -240,8 +240,8 @@ int main()
 	ui::Parameter param_tc_offset("TC offset", "\337C", device_state.settings.tc_offset.value, -100, 100, 1);
 	ui::Parameter param_tc_amp_gain("TC amp gain", "", device_state.settings.tc_amp_gain, 250, 400, 1);
 	ui::Parameter param_pid_kp("PID Kp", "", device_state.settings.pid_kp, 100, 1800, 10, 3);
-	ui::Parameter param_pid_ki("PID Ki", "", device_state.settings.pid_ki, 100, 1800, 10, 3);
-	ui::Parameter param_pid_kd("PID Kd", "", device_state.settings.pid_kd, 100, 1800, 10, 3);
+	ui::Parameter param_pid_ki("PID Ki", "", device_state.settings.pid_ki, 0, 1800, 10, 3);
+	ui::Parameter param_pid_kd("PID Kd", "", device_state.settings.pid_kd, 0, 1800, 10, 3);
 	main_ui.addParameter(param_temp_increment);
 	main_ui.addParameter(param_standby_temp);
 	main_ui.addParameter(param_standby_delay);
@@ -278,13 +278,13 @@ int main()
 	standby_sensor.setDelays(device_state.settings.standby_delay, device_state.settings.off_delay);
 
 	iwdg_set_period_ms(1500);
-	iwdg_start();
+	// iwdg_start();
 	
 	Task control_task(5_ms, CONTROL_PERIOD, controlTaskFunc);
 	control_task.setData(&task_context);
 	Task ui_task(5_ms, 100_ms, uiTaskFunc);
 	ui_task.setData(&task_context);
-	Task debug_task(5_ms, 500_ms, debugTaskFunc);
+	Task debug_task(5_ms, 200_ms, debugTaskFunc);
 	debug_task.setData(&task_context);
 	Task button_task(1_ms, 5_ms, btnTaskFunc);
 	button_task.setData(&task_context);
