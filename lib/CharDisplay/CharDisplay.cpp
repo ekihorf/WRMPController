@@ -60,6 +60,12 @@ void CharDisplay::print(char *str) {
     }
 }
 
+void CharDisplay::printN(char *str, size_t n) {
+    for (size_t i = 0; i < n && *str; ++i, ++str) {
+        writeData(*str);
+    }
+}
+
 void CharDisplay::setBacklight(bool on) {
     m_backlight_on = on;
     i2cWrite(0x00);

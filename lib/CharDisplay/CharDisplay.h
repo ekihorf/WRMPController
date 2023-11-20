@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 #include "I2cDma.h"
 
 class CharDisplay {
@@ -15,6 +16,7 @@ public:
     void clear();
     void goTo(uint8_t row, uint8_t column);
     void print(char *str);
+    void printN(char *str, size_t n);
     void setBacklight(bool on);
     void defineCharacter(uint8_t address, uint8_t character[8]);
     void writeData(uint8_t data);
