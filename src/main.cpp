@@ -73,7 +73,7 @@ static void pid_task_func(void* data) {
 	time::Delay(200_us).wait();
 	d.sensor.performConversion();
 	d.state.tip_temp = d.sensor.getTemperature();
-	d.state.heater_power = d.pid.calculate(d.state.tip_temp.value, d.state.set_temp.value);
+	d.state.heater_power = d.pid.calculate(d.state.tip_temp.asDegreesC(), d.state.set_temp.asDegreesC());
 
 	if (d.state.tip_temp > MAX_TIP_TEMP) {
 		d.heater.turnOff();
@@ -140,9 +140,9 @@ static void debug_task_func(void* data) {
 	auto& d = *static_cast<TaskContext*>(data);
 
 	DebugData debug_data {
-		.tip_temp = d.state.tip_temp.value,
+		.tip_temp = d.state.tip_temp.asDegreesC(),
 		.cj_temp = 30,
-		.duty_cycle = d.state.tip_temp.value
+		.duty_cycle = d.state.tip_temp.asDegreesC()
 	};
 
 	d.debug.sendData(debug_data);
@@ -222,21 +222,13 @@ int main()
 
 	Button button(GPIOA, GPIO5, true);
 
-
-	Celsius set_temp = 200_degC;
-	Celsius standby_temp = 150_degC;
-	Celsius tip_temp = 0_degC;
-	uint32_t pid_output = 0;
-	HeatingStatus heating_status = HeatingStatus::Off;
-	uint32_t temp_increment = 5;
-
 	DeviceState device_state {
-		.set_temp = set_temp,
-		.tip_temp = tip_temp,
-		.standby_temp = standby_temp,
-		.heater_power = pid_output,
-		.heating_status = heating_status,
-		.temp_increment = temp_increment
+		.set_temp = 200_degC,
+		.tip_temp = 0_degC,
+		.standby_temp = 150_degC,
+		.heater_power = 0,
+		.heating_status = HeatingStatus::Off,
+		.temp_increment = 5_degC
 	};
 
 	ui::Ui main_ui(device_state);

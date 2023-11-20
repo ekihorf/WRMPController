@@ -9,18 +9,18 @@ public:
         uint32_t adc;
         uint8_t channel;
         uint32_t amp_gain;
-        Millivolts vref;
+        Voltage vref;
     };
 
     TempSensor(Config& config);
     void performConversion();
-    Celsius getTemperature();
-    void setOffset(Celsius offset);
+    Temperature getTemperature();
+    void setOffset(Temperature offset);
 
 private:
     uint32_t m_adc;
     uint8_t m_channel;
-    Celsius m_offset{0};
+    Temperature m_offset{0};
     uint32_t m_amp_gain;
-    Millivolts m_vref;
+    Voltage m_vref;
 };

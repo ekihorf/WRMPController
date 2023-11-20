@@ -7,7 +7,7 @@ typedef void (*TaskFunc)(void *);
 
 class Task {
 public:
-    Task(Microsecond max_duration, Microsecond interval, TaskFunc func);
+    Task(Duration max_duration, Duration interval, TaskFunc func);
     void setData(void *data);
 
     friend class Scheduler;

@@ -2,61 +2,84 @@
 
 #include <cstdint>
 
-class Microsecond {
+class Duration {
 public:
-    constexpr explicit Microsecond(uint32_t us) : value{us} {}
+    constexpr explicit Duration(uint32_t us) : value{us} {}
+    constexpr uint32_t asMicroseconds() { return value; };
+    constexpr uint32_t asMilliseconds() { return value / 1'000; };
+    constexpr uint32_t asSeconds() { return value / 1'000'000; };
 
+private:
     uint32_t value;
 };
 
-constexpr Microsecond operator "" _us(unsigned long long us) {
-    return Microsecond(static_cast<uint32_t>(us));
+constexpr Duration operator "" _us(unsigned long long us) {
+    return Duration(static_cast<uint32_t>(us));
 }
 
-constexpr Microsecond operator "" _ms(unsigned long long ms) {
-    return Microsecond(static_cast<uint32_t>(ms) * 1000);
+constexpr Duration operator "" _ms(unsigned long long ms) {
+    return Duration(static_cast<uint32_t>(ms) * 1'000);
+}
+
+constexpr Duration operator "" _s(unsigned long long s) {
+    return Duration(static_cast<uint32_t>(s) * 1'000'000);
 }
 
 
-class Celsius {
+class Temperature {
 public:
-    constexpr explicit Celsius(int32_t degrees) : value{degrees} {}
-    constexpr Celsius operator-() {
-        return Celsius(-value);
+    constexpr explicit Temperature(int32_t degrees_c) : value{degrees_c} {}
+    constexpr int32_t asDegreesC() {
+        return value;
     }
-    constexpr Celsius operator+(const Celsius& other) const {
-        return Celsius(value + other.value);
+
+    constexpr Temperature operator-() {
+        return Temperature(-value);
     }
-    constexpr Celsius operator-(const Celsius& other) const {
-        return Celsius(value - other.value);
+    constexpr Temperature operator+(const Temperature& other) const {
+        return Temperature(value + other.value);
     }
-    constexpr bool operator>(const Celsius& other) const {
+    constexpr Temperature operator-(const Temperature& other) const {
+        return Temperature(value - other.value);
+    }
+    constexpr bool operator>(const Temperature& other) const {
         return value > other.value;
     }
-    constexpr bool operator<(const Celsius& other) const {
+    constexpr bool operator<(const Temperature& other) const {
         return value < other.value;
     }
-    constexpr bool operator>=(const Celsius& other) const {
+    constexpr bool operator>=(const Temperature& other) const {
         return value >= other.value;
     }
-    constexpr bool operator<=(const Celsius& other) const {
+    constexpr bool operator<=(const Temperature& other) const {
         return value <= other.value;
     }
+    constexpr void operator+=(const Temperature& other) {
+        value += other.value;
+    }
+    constexpr void operator-=(const Temperature& other) {
+        value -= other.value;
+    }
 
+private:
     int32_t value;
 };
 
-constexpr Celsius operator "" _degC(unsigned long long degrees) {
-    return Celsius(static_cast<int32_t>(degrees));
+constexpr Temperature operator "" _degC(unsigned long long degrees_c) {
+    return Temperature(static_cast<int32_t>(degrees_c));
 }
 
-class Millivolts {
+class Voltage {
 public:
-    constexpr explicit Millivolts(uint32_t mv) : value{mv} {}
+    constexpr explicit Voltage(uint32_t mv) : value{mv} {}
+    constexpr uint32_t asMillivolts() {
+        return value;
+    }
 
+private:
     uint32_t value;
 };
 
-constexpr Millivolts operator "" _mV(unsigned long long mv) {
-    return Millivolts(static_cast<uint32_t>(mv));
+constexpr Voltage operator "" _mV(unsigned long long mv) {
+    return Voltage(static_cast<uint32_t>(mv));
 }

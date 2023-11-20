@@ -31,15 +31,15 @@ uint64_t time::getMsTicks() {
     return ticks;
 }
 
-time::Delay::Delay(Microsecond delay) {
-	if (delay.value > 65535) {
+time::Delay::Delay(Duration delay) {
+	if (delay.asMicroseconds() > 65535) {
 		m_systick_delay = true;
 		m_start = getMsTicks();
-		m_raw_time = delay.value / 1000;
+		m_raw_time = delay.asMilliseconds();
 	} else {
 		m_systick_delay = false;
 		m_start = timer_get_counter(g_timer);
-		m_raw_time = delay.value;
+		m_raw_time = delay.asMicroseconds();
 	}
 }
 

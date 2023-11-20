@@ -10,11 +10,11 @@ enum class HeatingStatus {
 };
 
 struct DeviceState {
-    Celsius& set_temp;
-    Celsius& tip_temp;
-    Celsius& standby_temp;
-    uint32_t& heater_power;
-    HeatingStatus& heating_status;
+    Temperature set_temp;
+    Temperature tip_temp;
+    Temperature standby_temp;
+    uint32_t heater_power;
+    HeatingStatus heating_status;
 
-    uint32_t& temp_increment;
+    Temperature temp_increment;
 };

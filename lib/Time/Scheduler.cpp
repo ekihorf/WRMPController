@@ -3,11 +3,11 @@
 #include <etl/algorithm.h>
 #include "Time.h"
 
-Task::Task(Microsecond max_duration, Microsecond interval, TaskFunc func)
+Task::Task(Duration max_duration, Duration interval, TaskFunc func)
 : m_func{func} {
-    m_max_duration_ms = max_duration.value / 1000;
+    m_max_duration_ms = max_duration.asMilliseconds();
     cm3_assert(m_max_duration_ms > 0);
-    m_interval_ms = interval.value / 1000;
+    m_interval_ms = interval.asMilliseconds();
     cm3_assert(m_interval_ms > 0);
 }
 

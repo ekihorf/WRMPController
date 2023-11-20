@@ -42,24 +42,24 @@ bool ui::MainView::draw(Buffer &buffer) {
         memcpy(buffer.line1, "Power on       C", 16);
         buffer.line1[14] = 0xDF; // degree symbol
         buffer.line1[10] = 'S'; // TODO: replace with custom symbol
-        utils::uintToStr(buffer.line1 + 11, ds.set_temp.value, 3); 
+        utils::uintToStr(buffer.line1 + 11, ds.set_temp.asDegreesC(), 3); 
     } else if (ds.heating_status == HeatingStatus::Off) {
         memcpy(buffer.line1, "Power off      C", 16);
         buffer.line1[14] = 0xDF; // degree symbol
         buffer.line1[10] = 'S'; // TODO: replace with custom symbol
-        utils::uintToStr(buffer.line1 + 11, ds.set_temp.value, 3); 
+        utils::uintToStr(buffer.line1 + 11, ds.set_temp.asDegreesC(), 3); 
     } else if (ds.heating_status == HeatingStatus::Standby) {
         memcpy(buffer.line1, "Standby        C", 16);
         buffer.line1[14] = 0xDF; // degree symbol
         buffer.line1[10] = 'S'; // TODO: replace with custom symbol
-        utils::uintToStr(buffer.line1 + 11, ds.standby_temp.value, 3); 
+        utils::uintToStr(buffer.line1 + 11, ds.standby_temp.asDegreesC(), 3); 
     }
 
     memcpy(buffer.line2, "P   %          C", 16);
     buffer.line2[14] = 0xDF; // degree symbol
     buffer.line2[10] = 'T'; // TODO: replace with custom symbol
     utils::uintToStr(buffer.line2 + 1, ds.heater_power, 3);
-    utils::uintToStr(buffer.line2 + 11, ds.tip_temp.value, 3); 
+    utils::uintToStr(buffer.line2 + 11, ds.tip_temp.asDegreesC(), 3); 
     return true;
 }
 
@@ -80,12 +80,12 @@ bool ui::MainView::handleEvent(Event event) {
         break;
     
     case Event::EncoderCW:
-        ds.set_temp.value += ds.temp_increment;
+        ds.set_temp += ds.temp_increment;
         temp_changed = true;
         break;
 
     case Event::EncoderCCW:
-        ds.set_temp.value -= ds.temp_increment;
+        ds.set_temp -= ds.temp_increment;
         temp_changed = true;
         break;
     } 
@@ -235,9 +235,7 @@ void ui::ParameterView::setParameter(Parameter &parameter) {
 }
 
 ui::I32Parameter::I32Parameter(char *name, char *unit, int32_t &ref, int32_t min, int32_t max, size_t scale, int32_t step)
-: Parameter{name, unit}, m_ref{ref}, m_min{min}, m_max{max}, m_scale{scale}, m_step{step}, m_val{ref} {
-
-}
+: Parameter{name, unit}, m_ref{ref}, m_min{min}, m_max{max}, m_scale{scale}, m_step{step}, m_val{ref} {}
 
 bool ui::I32Parameter::draw(Buffer& buffer) {
     buffer.line1[0] = '\0';

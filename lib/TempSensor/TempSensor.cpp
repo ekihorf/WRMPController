@@ -14,7 +14,7 @@ static uint32_t lut_tc_type_d[] = {
     8076, 8275, 8474, 8674, 8874, 9075, 9276, 9478, 9680, 9883
 };
 
-static Celsius tcLookup(uint32_t emf_uv) {
+static Temperature tcLookup(uint32_t emf_uv) {
     uint32_t lut_size = sizeof(lut_tc_type_d) / sizeof(uint32_t);
     uint32_t i;
     for (i = 0; i < lut_size - 1; ++i) {
@@ -26,7 +26,7 @@ static Celsius tcLookup(uint32_t emf_uv) {
     uint32_t upper = lut_tc_type_d[i];
     uint32_t lower = lut_tc_type_d[i - 1];
     uint32_t temp = 10 * i + 10 * (emf_uv - lower) / (upper - lower);
-    return Celsius{static_cast<int32_t>(temp)};
+    return Temperature{static_cast<int32_t>(temp)};
 }
 
 TempSensor::TempSensor(Config& config)
@@ -57,14 +57,14 @@ void TempSensor::performConversion() {
     while (!adc_eoc(m_adc));
 }
 
-Celsius TempSensor::getTemperature() {
+Temperature TempSensor::getTemperature() {
     uint32_t raw = adc_read_regular(m_adc);
-    uint32_t tc_voltage = (raw * m_vref.value) / 4096;
+    uint32_t tc_voltage = (raw * m_vref.asMillivolts()) / 4096;
     tc_voltage *= 1000;
     tc_voltage /= m_amp_gain;
     return tcLookup(tc_voltage) + m_offset;
 }
 
-void TempSensor::setOffset(Celsius offset) {
+void TempSensor::setOffset(Temperature offset) {
     m_offset = offset;
 }

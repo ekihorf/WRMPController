@@ -16,7 +16,7 @@ namespace time {
 
     class Delay {
     public:
-        Delay(Microsecond time);
+        Delay(Duration time);
         void wait();
         bool hasExpired();
     
