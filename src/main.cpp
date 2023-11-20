@@ -14,6 +14,7 @@
 #include "Pid.h"
 #include "CharDisplay.h"
 #include "Utils.h"
+#include "InterruptHandler.h"
 
 constexpr uint32_t PORT_HEATER{GPIOA};
 constexpr uint16_t PIN_HEATER{GPIO4};
@@ -21,24 +22,11 @@ constexpr uint16_t PIN_HEATER{GPIO4};
 constexpr uint32_t PORT_ZERO{GPIOA};
 constexpr uint16_t PIN_ZERO{GPIO0};
 
-// FIXME: this is ugly, but needed now because heater object is used in an ISR.
-AcControl heater(TIM14, TIM_OC1, RCC_TIM14);
-
 static void gpio_setup()
 {
 	rcc_periph_clock_enable(RCC_GPIOA);
-
-	// Heater pin. Used by TIM14 CH1
-	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, PIN_HEATER);
-	gpio_set_af(GPIOA, GPIO_AF4, PIN_HEATER);
-
-	// Zero crossing detection input pin
-	gpio_mode_setup(PORT_ZERO, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, PIN_ZERO);
-	// Zero crossing detection interrupt
+	rcc_periph_clock_enable(RCC_TIM14);
 	nvic_enable_irq(NVIC_EXTI0_1_IRQ);
-	exti_select_source(EXTI0, PORT_ZERO);
-	exti_set_trigger(EXTI0, EXTI_TRIGGER_BOTH);
-	exti_enable_request(EXTI0);
 
 	// UART TX pin. Used by debug module
 	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2);
@@ -47,6 +35,10 @@ static void gpio_setup()
 	// I2C pins
 	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO11 | GPIO12);
 	gpio_set_af(GPIOA, GPIO_AF6, GPIO11 | GPIO12);
+
+	// Encoder pins
+	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_PULLUP, GPIO6 | GPIO7);
+	gpio_set_af(GPIOA, GPIO_AF1, GPIO6 | GPIO7);
 }
 
 static void i2c_setup() {
@@ -59,11 +51,6 @@ static void i2c_setup() {
 	i2c_peripheral_enable(I2C2);
 }
 
-extern "C" void exti0_1_isr(void) {
-	heater.zeroCrossingCallback();
-	exti_reset_request(EXTI0);
-}
-
 int main()
 {
 	rcc_clock_setup(&rcc_clock_config[RCC_CLOCK_CONFIG_HSI_16MHZ]);
@@ -71,9 +58,24 @@ int main()
 	gpio_setup();
 	i2c_setup();
 
+	AcControl::Config heaterConfig {
+		.timer = TIM14,
+		.timer_oc = TIM_OC1,
+		.timer_clock_freq = rcc_apb1_frequency,
+	    .zero_cross_port = GPIOA,
+		.zero_cross_pin = GPIO0,
+		.zero_cross_exti = EXTI0,
+		.heater_port = GPIOA,
+		.heater_pin = GPIO4,
+		.heater_pin_af = GPIO_AF4 
+	};
+
+	AcControl heater(heaterConfig);
+	
 	time::Delay(200_ms).wait();
 
 	CharDisplay display(I2C2, 0x27);
+	// Encoder encoder(TIM3, RCC_TIM3);
 		
 	TempSensor sensor(ADC1, 8, 320, 3270);
 	Pid pid(200);
@@ -83,6 +85,8 @@ int main()
 	DebugOut debug(USART2, RCC_USART2);
 
 	char buf[8] = {};
+
+	int32_t counter = 0; 
 
 	while (1) {
 		heater.turnOff();
@@ -94,11 +98,13 @@ int main()
 		if (tip_temp < 500) {
 			heater.turnOn(output / 5);
 		}
+		
+		// counter += encoder.getDelta();
 
 		
 		display.goTo(0, 0);
-		display.print("Set temp: ");
-		utils::uintToStr(buf, 300, 3);
+		display.print("Counter: ");
+		utils::uintToStr(buf, counter, 4);
 		display.print(buf);
 
 		display.goTo(1, 0);
