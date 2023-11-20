@@ -96,7 +96,6 @@ static void ui_task_func(void* data) {
 	auto& d = *static_cast<Context*>(data);
 	iwdg_reset(); // TODO: is this the right place for this?
 
-	// ugly but whatever
 	auto delta = d.encoder.getDelta();
 	uint32_t n = abs(delta);
 	auto event = delta < 0 ? ui::Event::EncoderCCW : ui::Event::EncoderCW;
@@ -157,7 +156,10 @@ static void load_settings(Context& ctx) {
 	if (result && !ctx.button.isPressedRaw()) {
 		auto sts = ctx.nvs.readSts();
 		if (sts.has_value()) {
-			ctx.state.set_temp = Temperature(sts.value());
+			auto temp = Temperature(sts.value());
+			if (temp <= MAX_TIP_TEMP && temp >= MIN_TIP_TEMP) {
+				ctx.state.set_temp = temp;
+			}
 		}
 		return;
 	}

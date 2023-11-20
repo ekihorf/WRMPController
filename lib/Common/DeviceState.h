@@ -10,7 +10,6 @@ enum class HeatingStatus {
 };
 
 struct DeviceSettings {
-    Temperature set_temp;
     Temperature temp_increment;
     Temperature standby_temp;
     Duration standby_delay;
@@ -20,6 +19,7 @@ struct DeviceSettings {
     int32_t pid_kd;
     Voltage tc_vref;
     uint32_t tc_amp_gain;
+    Temperature tc_offset;
 };
 
 struct DeviceState {
