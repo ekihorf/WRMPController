@@ -11,7 +11,7 @@ public:
     void setLimits(int32_t min, int32_t max);
 
 private:
-    int32_t m_i_term;
+    int32_t m_i_term = 0;
     int32_t m_last_input;
     int32_t m_kp = 100;
     int32_t m_ki = 0;

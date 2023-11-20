@@ -27,6 +27,7 @@ int32_t Pid::calculate(int32_t input, int32_t setpoint) {
 }
 
 void Pid::setTunings(int32_t kp, int32_t ki, int32_t kd) {
+    m_i_term = 0;
     m_kp = kp;
     m_ki = ki * m_interval_ms / mul;
     m_kd = kd * mul / m_interval_ms;
