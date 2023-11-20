@@ -7,6 +7,7 @@
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/adc.h>
 #include <libopencm3/stm32/i2c.h>
+#include <libopencm3/stm32/dma.h>
 #include "AcControl.h"
 #include "Debug.h"
 #include "Time.h"
@@ -16,6 +17,7 @@
 #include "Utils.h"
 #include "InterruptHandler.h"
 #include "Encoder.h"
+#include "I2cDma.h"
 
 constexpr uint32_t PORT_HEATER{GPIOA};
 constexpr uint16_t PIN_HEATER{GPIO4};
@@ -42,12 +44,14 @@ static void gpio_setup()
 
 static void i2c_setup() {
 	rcc_periph_clock_enable(RCC_I2C2);
-	i2c_peripheral_disable(I2C2);
-	i2c_enable_analog_filter(I2C2);
-	i2c_set_digital_filter(I2C2, 0);
-	i2c_set_speed(I2C2, i2c_speed_sm_100k, rcc_apb1_frequency / 1'000'000);
-	i2c_set_7bit_addr_mode(I2C2);
-	i2c_peripheral_enable(I2C2);
+	rcc_periph_clock_enable(RCC_DMA1);
+	nvic_enable_irq(NVIC_DMA1_CHANNEL1_IRQ);
+	// i2c_peripheral_disable(I2C2);
+	// i2c_enable_analog_filter(I2C2);
+	// i2c_set_digital_filter(I2C2, 0);
+	// i2c_set_speed(I2C2, i2c_speed_sm_100k, rcc_apb1_frequency / 1'000'000);
+	// i2c_set_7bit_addr_mode(I2C2);
+	// i2c_peripheral_enable(I2C2);
 }
 
 int main()
@@ -63,6 +67,14 @@ int main()
 	time::setup(timeConfig);
 
 	i2c_setup();
+
+	I2cDma::Config i2c_config {
+		.i2c = I2C2,
+		.apb1_freq = rcc_apb1_frequency,
+		.dma = DMA1,
+		.dma_channel = DMA_CHANNEL1
+	};
+	I2cDma i2c(i2c_config);
 
 	AcControl::Config heater_config {
 		.timer = TIM14,
@@ -80,7 +92,12 @@ int main()
 	
 	time::Delay(200_ms).wait();
 
-	CharDisplay display(I2C2, 0x27);
+	CharDisplay::Config disp_config {
+		.i2cdma = i2c,
+		.i2c_addr = 0x27
+	};
+	CharDisplay display(disp_config);
+	display.flushBuffer();
 
 	Encoder::Config encoder_config {
 		.timer = TIM3,
@@ -129,7 +146,6 @@ int main()
 			set_temp = 100;
 		}
 
-		
 		display.goTo(0, 0);
 		display.print("Set temp: ");
 		utils::uintToStr(buf, set_temp, 3);
@@ -139,6 +155,8 @@ int main()
 		display.print("Actual temp: ");
 		utils::uintToStr(buf, tip_temp, 3);
 		display.print(buf);
+
+		display.flushBuffer();
 
 		DebugData d {
 			.tip_temp = tip_temp,

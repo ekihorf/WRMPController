@@ -1,10 +1,16 @@
 #pragma once
 
 #include <cstdint>
+#include "I2cDma.h"
 
 class CharDisplay {
 public:
-    CharDisplay(uint32_t i2c, uint8_t i2c_addr);
+    struct Config {
+        I2cDma& i2cdma;
+        uint8_t i2c_addr;
+    }; 
+
+    CharDisplay(Config& config);
     void onOffControl(bool display_on, bool cursor_on, bool blink_on);
     void clear();
     void goTo(uint8_t row, uint8_t column);
@@ -13,11 +19,17 @@ public:
     void defineCharacter(uint8_t address, uint8_t character[8]);
     void writeData(uint8_t data);
 
+    void flushBuffer();
+
 private:
     void writeCommand(uint8_t command);
     void i2cWrite(uint8_t data);
+    void waitAndFlush();
 
     bool m_backlight_on = true;
-    uint32_t m_i2c;
+    I2cDma& m_i2cdma;
     uint8_t m_i2c_addr;
+    
+    uint8_t m_i2c_buf[255];
+    uint32_t m_i2c_buf_pos = 0;
 };
