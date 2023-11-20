@@ -6,8 +6,8 @@ public:
     void connect(Class* obj) {
         m_callback.obj  = obj;
         m_callback.func = [](void* data) {
-            Class* obj = static_cast<Class*>(data);
-            (obj->*Func)();
+            Class* o = static_cast<Class*>(data);
+            (o->*Func)();
         };
     }
 

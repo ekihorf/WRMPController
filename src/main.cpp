@@ -15,6 +15,7 @@
 #include "CharDisplay.h"
 #include "Utils.h"
 #include "InterruptHandler.h"
+#include "Encoder.h"
 
 constexpr uint32_t PORT_HEATER{GPIOA};
 constexpr uint16_t PIN_HEATER{GPIO4};
@@ -27,6 +28,7 @@ static void gpio_setup()
 	rcc_periph_clock_enable(RCC_GPIOA);
 	rcc_periph_clock_enable(RCC_TIM14);
 	rcc_periph_clock_enable(RCC_TIM16);
+	rcc_periph_clock_enable(RCC_TIM3);
 	nvic_enable_irq(NVIC_EXTI0_1_IRQ);
 
 	// UART TX pin. Used by debug module
@@ -36,10 +38,6 @@ static void gpio_setup()
 	// I2C pins
 	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO11 | GPIO12);
 	gpio_set_af(GPIOA, GPIO_AF6, GPIO11 | GPIO12);
-
-	// Encoder pins
-	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_PULLUP, GPIO6 | GPIO7);
-	gpio_set_af(GPIOA, GPIO_AF1, GPIO6 | GPIO7);
 }
 
 static void i2c_setup() {
@@ -66,7 +64,7 @@ int main()
 
 	i2c_setup();
 
-	AcControl::Config heaterConfig {
+	AcControl::Config heater_config {
 		.timer = TIM14,
 		.timer_oc = TIM_OC1,
 		.timer_clock_freq = rcc_apb1_frequency,
@@ -78,12 +76,21 @@ int main()
 		.heater_pin_af = GPIO_AF4 
 	};
 
-	AcControl heater(heaterConfig);
+	AcControl heater(heater_config);
 	
 	time::Delay(200_ms).wait();
 
 	CharDisplay display(I2C2, 0x27);
-	// Encoder encoder(TIM3, RCC_TIM3);
+
+	Encoder::Config encoder_config {
+		.timer = TIM3,
+		.port_a = GPIOA,
+		.pin_a = GPIO6,
+		.port_b = GPIOA,
+		.pin_b = GPIO7,
+		.gpio_af = GPIO_AF1
+	};
+	Encoder encoder(encoder_config);
 		
 	TempSensor sensor(ADC1, 8, 320, 3270);
 	Pid pid(200);
@@ -94,7 +101,7 @@ int main()
 
 	char buf[8] = {};
 
-	int32_t counter = 0; 
+	int32_t set_temp = 0; 
 
 	while (1) {
 		heater.turnOff();
@@ -102,17 +109,22 @@ int main()
 		time::Delay(1_ms).wait();
 		sensor.performConversion();
 		uint32_t tip_temp = sensor.getTemperature();
-		uint32_t output = pid.calculate(tip_temp, 300);
+		uint32_t output = pid.calculate(tip_temp, set_temp);
 		if (tip_temp < 500) {
 			heater.turnOn(output / 5);
 		}
 		
-		// counter += encoder.getDelta();
+		set_temp += encoder.getDelta() * 5;
+		if (set_temp > 450) {
+			set_temp = 450;
+		} else if (set_temp < 100) {
+			set_temp = 100;
+		}
 
 		
 		display.goTo(0, 0);
-		display.print("Counter: ");
-		utils::uintToStr(buf, counter, 4);
+		display.print("Set temp: ");
+		utils::uintToStr(buf, set_temp, 3);
 		display.print(buf);
 
 		display.goTo(1, 0);
