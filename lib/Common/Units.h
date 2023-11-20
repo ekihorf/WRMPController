@@ -24,11 +24,23 @@ public:
     constexpr Celsius operator-() {
         return Celsius(-value);
     }
-    constexpr Celsius operator+(Celsius& other) {
+    constexpr Celsius operator+(const Celsius& other) const {
         return Celsius(value + other.value);
     }
-    constexpr Celsius operator-(Celsius& other) {
+    constexpr Celsius operator-(const Celsius& other) const {
         return Celsius(value - other.value);
+    }
+    constexpr bool operator>(const Celsius& other) const {
+        return value > other.value;
+    }
+    constexpr bool operator<(const Celsius& other) const {
+        return value < other.value;
+    }
+    constexpr bool operator>=(const Celsius& other) const {
+        return value >= other.value;
+    }
+    constexpr bool operator<=(const Celsius& other) const {
+        return value <= other.value;
     }
 
     int32_t value;

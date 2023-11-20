@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include "DeviceState.h"
 
 namespace ui {
     struct Buffer {
@@ -44,21 +45,23 @@ namespace ui {
         bool handleEvent(Event event) override;
 
     private:
-
     };
 
 
     class Ui {
     public:
-        Ui();
+        Ui(DeviceState& device_state);
         void enterMainView();
         void enterMenuView();
         bool draw(Buffer& buffer);
-        void handleEvent(Event event); 
+        void handleEvent(Event event);
+        DeviceState& getDeviceState();
 
     private:
         MainView m_main_view;
         MenuView m_menu_view;
         std::reference_wrapper<View> m_current_view = m_main_view;
+
+        DeviceState& m_device_state;
     };
 }

@@ -22,6 +22,8 @@
 #include "I2cDma.h"
 #include "Button.h"
 #include "Ui.h"
+#include "DeviceState.h"
+#include "Constants.h"
 
 constexpr uint32_t PORT_HEATER{GPIOA};
 constexpr uint16_t PIN_HEATER{GPIO4};
@@ -61,9 +63,7 @@ struct TaskContext {
 	CharDisplay& display;
 	DebugOut& debug;
 	ui::Ui& ui;
-	int32_t& set_temp;
-	uint32_t& tip_temp;
-	uint32_t& pid_output;
+	DeviceState& state;
 };
 
 static void pid_task_func(void* data) {
@@ -72,10 +72,16 @@ static void pid_task_func(void* data) {
 	d.heater.turnOff();
 	time::Delay(200_us).wait();
 	d.sensor.performConversion();
-	d.tip_temp = d.sensor.getTemperature().value;
-	d.pid_output = d.pid.calculate(d.tip_temp, d.set_temp);
-	if (d.tip_temp < 500) {
-		d.heater.turnOn(d.pid_output / 5);
+	d.state.tip_temp = d.sensor.getTemperature();
+	d.state.heater_power = d.pid.calculate(d.state.tip_temp.value, d.state.set_temp.value);
+
+	if (d.state.tip_temp > MAX_TIP_TEMP) {
+		d.heater.turnOff();
+		return;
+	}
+
+	if (d.state.heating_status == HeatingStatus::On) {
+		d.heater.turnOn(d.state.heater_power / 5);
 	}
 }
 
@@ -84,13 +90,14 @@ ui::Buffer ui_buf;
 
 static void ui_task_func(void* data) {
 	auto& d = *static_cast<TaskContext*>(data);
-	iwdg_reset();
+	iwdg_reset(); // TODO: is this the right place for this?
 
-	d.set_temp += d.encoder.getDelta() * 5;
-	if (d.set_temp > 450) {
-		d.set_temp = 450;
-	} else if (d.set_temp < 100) {
-		d.set_temp = 100;
+	// ugly but whatever
+	auto delta = d.encoder.getDelta();
+	uint32_t n = abs(delta);
+	auto event = delta < 0 ? ui::Event::EncoderCCW : ui::Event::EncoderCW;
+	while (n--) {
+		d.ui.handleEvent(event);
 	}
 
 	d.ui.draw(ui_buf);
@@ -133,9 +140,9 @@ static void debug_task_func(void* data) {
 	auto& d = *static_cast<TaskContext*>(data);
 
 	DebugData debug_data {
-		.tip_temp = d.tip_temp,
+		.tip_temp = d.state.tip_temp.value,
 		.cj_temp = 30,
-		.duty_cycle = d.pid_output
+		.duty_cycle = d.state.tip_temp.value
 	};
 
 	d.debug.sendData(debug_data);
@@ -215,11 +222,24 @@ int main()
 
 	Button button(GPIOA, GPIO5, true);
 
-	ui::Ui main_ui;
 
-	int32_t set_temp = 0; 
-	uint32_t tip_temp = 0;
+	Celsius set_temp = 200_degC;
+	Celsius standby_temp = 150_degC;
+	Celsius tip_temp = 0_degC;
 	uint32_t pid_output = 0;
+	HeatingStatus heating_status = HeatingStatus::Off;
+	int32_t temp_increment = 5;
+
+	DeviceState device_state {
+		.set_temp = set_temp,
+		.tip_temp = tip_temp,
+		.standby_temp = standby_temp,
+		.heater_power = pid_output,
+		.heating_status = heating_status,
+		.temp_increment = temp_increment
+	};
+
+	ui::Ui main_ui(device_state);
 
 	TaskContext task_context {
 		.pid = pid,
@@ -230,9 +250,7 @@ int main()
 		.display = display,
 		.debug = debug,
 		.ui = main_ui,
-		.set_temp = set_temp,
-		.tip_temp = tip_temp,
-		.pid_output = pid_output
+		.state = device_state
 	};
 	
 	Task pid_task(5_ms, 200_ms, pid_task_func);
