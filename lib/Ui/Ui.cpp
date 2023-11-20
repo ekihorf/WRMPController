@@ -48,19 +48,31 @@ bool ui::MainView::draw(Buffer &buffer) {
     auto& ds = m_parent.getDeviceState();
 
     if (ds.heating_status == HeatingStatus::On) {
-        memcpy(buffer.line1, "Power on      \337C", 16);
+        memcpy(buffer.line1, "  On          \337C", 16);
     } else if (ds.heating_status == HeatingStatus::Off) {
-        memcpy(buffer.line1, "Power off     \337C", 16);
+        memcpy(buffer.line1, "  Off         \337C", 16);
     } else if (ds.heating_status == HeatingStatus::Standby) {
-        memcpy(buffer.line1, "Standby       \337C", 16);
+        memcpy(buffer.line1, "  Standby     \337C", 16);
     }
 
     buffer.line1[10] = static_cast<uint8_t>(Symbols::SetTemperature);
     utils::uintToStr(buffer.line1 + 11, ds.set_temp.asDegreesC(), 3); 
 
-    memcpy(buffer.line2, "P   %         \337C", 16);
+    if (ds.handle_in_stand) {
+        buffer.line1[0] = static_cast<uint8_t>(Symbols::HandleInStand);
+    } else {
+        buffer.line1[0] = static_cast<uint8_t>(Symbols::HandleNotInStand);
+    }
+
+    memcpy(buffer.line2, "              \337C", 16);
     buffer.line2[10] = static_cast<uint8_t>(Symbols::CurrentTemperature);
-    utils::uintToStr(buffer.line2 + 1, ds.heater_power, 3);
+    if (ds.heating_status != HeatingStatus::Off) {
+        int bars = ds.heater_power / 10;
+        for (int i = 0; i < bars; ++i) {
+            buffer.line2[i] = 0xFF;
+        } 
+    }
+    
     utils::uintToStr(buffer.line2 + 11, ds.tip_temp.asDegreesC(), 3); 
     return true;
 }

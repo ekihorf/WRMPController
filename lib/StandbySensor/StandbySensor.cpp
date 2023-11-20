@@ -17,7 +17,8 @@ void StandbySensor::reset() {
 }
 
 StandbySensor::State StandbySensor::update() {
-    if (!sensorActivated()) {
+    m_handle_in_stand = sensorActivated();
+    if (!m_handle_in_stand) {
         m_activation_time = time::getMsTicks();
         return State::Active;
     }
@@ -30,6 +31,10 @@ StandbySensor::State StandbySensor::update() {
     } else {
         return State::Active;
     }
+}
+
+bool StandbySensor::isHandleInStand() {
+    return m_handle_in_stand;
 }
 
 bool StandbySensor::sensorActivated() {

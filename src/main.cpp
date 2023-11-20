@@ -58,6 +58,7 @@ static void controlTaskFunc(void* data) {
 		d.state.heating_status = HeatingStatus::Off;
 		break;
 	}
+	d.state.handle_in_stand = d.standby_sensor.isHandleInStand();
 
 	time::Delay(200_us).wait();
 	d.temp_sensor.performConversion();
@@ -225,7 +226,8 @@ int main()
 		.heating_status = HeatingStatus::Off,
 		.temp_updated = false,
 		.settings_updated = false,
-		.settings = defaults::SETTINGS
+		.settings = defaults::SETTINGS,
+		.handle_in_stand = false
 	};
 
 	ui::Ui main_ui(device_state);

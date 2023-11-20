@@ -22,7 +22,8 @@ public:
     StandbySensor(const Config& config);
     void setDelays(Duration standby_delay, Duration off_delay);
     void reset();
-    State update(); 
+    State update();
+    bool isHandleInStand();
 
 private:
     uint32_t m_port;
@@ -31,6 +32,7 @@ private:
     Duration m_standby_delay{5_s};
     Duration m_off_delay{10_s};
     uint64_t m_activation_time;
+    bool m_handle_in_stand;
 
     bool sensorActivated();
 };

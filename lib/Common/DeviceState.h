@@ -30,4 +30,5 @@ struct DeviceState {
     bool temp_updated;
     bool settings_updated;
     DeviceSettings settings;
+    bool handle_in_stand;
 };
