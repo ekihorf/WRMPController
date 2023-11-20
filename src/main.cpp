@@ -55,38 +55,35 @@ static void i2c_setup() {
 	// i2c_peripheral_enable(I2C2);
 }
 
-struct PidTaskData {
+struct TaskContext {
 	Pid& pid;
 	AcControl& heater;
 	TempSensor& sensor;
+	Encoder& encoder;
+	CharDisplay& display;
+	DebugOut& debug;
 	int32_t& set_temp;
 	uint32_t& tip_temp;
+	uint32_t& pid_output;
 };
 
-static void pid_task_func(void *data) {
-	auto& d = *static_cast<PidTaskData*>(data);
+static void pid_task_func(void* data) {
+	auto& d = *static_cast<TaskContext*>(data);
 
 	d.heater.turnOff();
 	time::Delay(200_us).wait();
 	d.sensor.performConversion();
 	d.tip_temp = d.sensor.getTemperature().value;
-	uint32_t output = d.pid.calculate(d.tip_temp, d.set_temp);
+	d.pid_output = d.pid.calculate(d.tip_temp, d.set_temp);
 	if (d.tip_temp < 500) {
-		d.heater.turnOn(output / 5);
+		d.heater.turnOn(d.pid_output / 5);
 	}
 }
 
-struct UiTaskData {
-	Encoder& encoder;
-	CharDisplay& display;
-	int32_t& set_temp;
-	uint32_t& tip_temp;
-};
-
 char disp_buf[8] = {};
 
-static void ui_task_func(void *data) {
-	auto& d = *static_cast<UiTaskData *>(data);
+static void ui_task_func(void* data) {
+	auto& d = *static_cast<TaskContext*>(data);
 
 	d.set_temp += d.encoder.getDelta() * 5;
 	if (d.set_temp > 450) {
@@ -106,6 +103,18 @@ static void ui_task_func(void *data) {
 	d.display.print(disp_buf);
 
 	d.display.flushBuffer();
+}
+
+static void debug_task_func(void* data) {
+	auto& d = *static_cast<TaskContext*>(data);
+
+	DebugData debug_data {
+		.tip_temp = d.tip_temp,
+		.cj_temp = 30,
+		.duty_cycle = d.pid_output
+	};
+
+	d.debug.sendData(debug_data);
 }
 
 int main()
@@ -178,51 +187,42 @@ int main()
 
 	DebugOut debug(USART2, RCC_USART2);
 
-
 	int32_t set_temp = 0; 
 	uint32_t tip_temp = 0;
+	uint32_t pid_output = 0;
 
-	PidTaskData pid_task_data {
+	TaskContext task_context {
 		.pid = pid,
 		.heater = heater,
 		.sensor = sensor,
+		.encoder = encoder,
+		.display = display,
+		.debug = debug,
 		.set_temp = set_temp,
-		.tip_temp = tip_temp
+		.tip_temp = tip_temp,
+		.pid_output = pid_output
 	};
 	
 	Task pid_task(5_ms, 200_ms, pid_task_func);
-	pid_task.setData(&pid_task_data);
-
-	UiTaskData ui_task_data {
-		.encoder = encoder,
-		.display = display,
-		.set_temp = set_temp,
-		.tip_temp = tip_temp
-	};
-
+	pid_task.setData(&task_context);
 	Task ui_task(5_ms, 100_ms, ui_task_func);
-	ui_task.setData(&ui_task_data);
+	ui_task.setData(&task_context);
+	Task debug_task(5_ms, 500_ms, debug_task_func);
+	debug_task.setData(&task_context);
 
 	Scheduler scheduler;
 	scheduler.addTask(ui_task);
 	scheduler.addTask(pid_task);
+	scheduler.addTask(debug_task);
 
 	time::Delay(100_ms).wait();
-	display.print("Dupa");
+	display.print("INIT");
 	display.flushBuffer();
 
 	time::Delay(500_ms).wait();
 
 	while (1) {
 		scheduler.runNextTask();
-		// DebugData d {
-		// 	.tip_temp = tip_temp,
-		// 	.cj_temp = 30,
-		// 	.duty_cycle = output
-		// };
-
-		// debug.sendData(d);
-
 	}
 
 	return 0;
