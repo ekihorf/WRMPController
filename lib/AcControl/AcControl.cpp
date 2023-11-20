@@ -1,61 +1,33 @@
 #include "AcControl.h"
 #include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/exti.h>
-#include <libopencm3/cm3/nvic.h>
 
-AcControl::AcControl(uint32_t zero_port, uint16_t zero_pin, uint32_t out_port, uint16_t out_pin) :
-        m_zero_pin{zero_pin},
-        m_zero_port{zero_port},
-        m_out_pin{out_pin},
-        m_out_port{out_port} {}
-
-void AcControl::setControlPeriod(uint32_t halfcycles) {
-    m_control_period = halfcycles;
+AcControl::AcControl(uint32_t timer, tim_oc_id timer_oc, rcc_periph_clken timer_rcc)
+: m_timer{timer},
+  m_timer_oc{timer_oc} {
+	rcc_periph_clock_enable(timer_rcc);
+    timer_set_mode(timer, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
+    timer_set_prescaler(timer, (rcc_apb1_frequency) / 100000);
+    timer_disable_preload(timer);
+    timer_one_shot_mode(timer);
+    timer_set_period(timer, 100);
+    timer_set_oc_value(timer, timer_oc, 1);
+    timer_set_oc_mode(timer, timer_oc, TIM_OCM_INACTIVE);
+    timer_enable_oc_output(timer, timer_oc);
 }
 
-void AcControl::setMainsFrequency(uint32_t freq_hz) {
-    m_mains_frequency = freq_hz;
+void AcControl::turnOn(uint32_t on_halfcycles) {
+    m_remaining_halfcycles = on_halfcycles;
+    timer_set_oc_mode(m_timer, m_timer_oc, TIM_OCM_PWM2);
 }
 
-void AcControl::setOnHalfcycles(uint32_t on_halfcycles) {
-    m_duty_cycle = on_halfcycles;
-    m_status = Status::Running;
+void AcControl::turnOff() {
+    m_remaining_halfcycles = 0;
+    timer_set_oc_mode(m_timer, m_timer_oc, TIM_OCM_INACTIVE);
 }
 
-void AcControl::update(uint32_t current_ticks) {
-    // skip the check if this is a first call
-    if (m_previous_ticks != 0) {
-        uint32_t required_halfcycles = ((current_ticks - m_previous_ticks) * m_mains_frequency / 500);
-
-        // if this is smaller, the time between updates was too short to make this check
-        if (required_halfcycles > 1) {
-            // time measurement might be not accurate, so expect smaller number of halfcycles
-            required_halfcycles -= 1;
-            if (m_halfcycles_since_update < required_halfcycles) {
-                gpio_clear(m_out_port, m_out_pin);
-                m_duty_cycle = 0;
-                m_status = Status::ZeroDetectorFault;
-            }
-        }
+void AcControl::zeroCrossingCallback() {
+    if (m_remaining_halfcycles > 0) {
+        --m_remaining_halfcycles;
+        timer_enable_counter(m_timer);
     }
-
-    m_halfcycles_since_update = 0;
-    m_previous_ticks = current_ticks;
-}
-
-void AcControl::signalZeroCrossing() {
-    ++m_halfcycles_since_update;
-    // called from the interrupt handler; to be removed later when there is a better solution
-    if (m_current_halfcycle++ < m_duty_cycle) {
-        gpio_set(m_out_port, m_out_pin);
-    } else {
-        gpio_clear(m_out_port, m_out_pin);
-    }
-    if (m_current_halfcycle >= m_control_period) {
-        m_current_halfcycle = 0;
-    }
-}
-
-AcControl::Status AcControl::getStatus() {
-    return m_status;
 }

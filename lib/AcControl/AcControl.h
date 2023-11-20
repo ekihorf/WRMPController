@@ -1,31 +1,19 @@
+#pragma once
+
 #include <cstdint>
+#include <libopencm3/stm32/timer.h>
+#include <libopencm3/stm32/rcc.h>
 
 class AcControl {
 public:
-    enum class Status {
-       Running,
-       ZeroDetectorFault
-    };
+    AcControl(uint32_t timer, tim_oc_id timer_oc, rcc_periph_clken timer_rcc);
 
-    AcControl(uint32_t zero_port, uint16_t zero_pin, uint32_t out_port, uint16_t out_pin);
-
-    void setControlPeriod(uint32_t halfcycles);
-    void setMainsFrequency(uint32_t freq_hz);
-    void setOnHalfcycles(uint32_t on_halfcycles);
-    void update(uint32_t current_ticks);
-    void signalZeroCrossing();
-    Status getStatus();
+    void turnOn(uint32_t on_halfcycles);
+    void turnOff();
+    void zeroCrossingCallback();
 
 private:
-    uint32_t m_zero_port;
-    uint16_t m_zero_pin;
-    uint32_t m_out_port;
-    uint16_t m_out_pin;
-    uint32_t m_mains_frequency = 50;
-    uint32_t m_control_period = 20;
-    uint32_t m_current_halfcycle = 0;
-    uint32_t m_duty_cycle = 0;
-    uint32_t m_halfcycles_since_update = 0;
-    uint32_t m_previous_ticks = 0;
-    Status m_status = Status::Running;
+    uint32_t m_timer;
+    tim_oc_id m_timer_oc;
+    volatile uint32_t m_remaining_halfcycles = 0;
 };

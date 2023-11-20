@@ -2,6 +2,7 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/usart.h>
+#include <libopencm3/stm32/timer.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/adc.h>
@@ -10,28 +11,23 @@
 #include "SysTick.h"
 #include "TempSensor.h"
 
-#define PORT_LED GPIOA
-#define PIN_LED GPIO1
+#define PORT_HEATER GPIOA
+#define PIN_HEATER GPIO4
 
 #define PORT_ZERO GPIOA
 #define PIN_ZERO GPIO0
 
-AcControl heater(PORT_ZERO, PIN_ZERO, PORT_LED, PIN_LED);
+AcControl heater(TIM14, TIM_OC1, RCC_TIM14);
 
 static void gpio_setup()
 {
-	/* Enable GPIOC clock. */
-	/* Manually: */
-	//RCC_AHBENR |= RCC_AHBENR_GPIOCEN;
-	/* Using API functions: */
 	rcc_periph_clock_enable(RCC_GPIOA);
 
+	gpio_mode_setup(PORT_HEATER, GPIO_MODE_AF, GPIO_PUPD_NONE, PIN_HEATER);
+	gpio_set_af(PORT_HEATER, GPIO_AF4, PIN_HEATER);
 
-	/* Set GPIO8 (in GPIO port C) to 'output push-pull'. */
-	/* Using API functions: */
-	gpio_mode_setup(PORT_LED, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_LED);
 	gpio_mode_setup(PORT_ZERO, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, PIN_ZERO);
-	gpio_clear(PORT_LED, PIN_LED);
+	gpio_clear(PORT_HEATER, PIN_HEATER);
 
 	nvic_enable_irq(NVIC_EXTI0_1_IRQ);
 	exti_select_source(EXTI0, GPIOA);
@@ -57,12 +53,8 @@ static void usart_setup(void)
 }
 
 extern "C" void exti0_1_isr(void) {
-	heater.signalZeroCrossing();
+	heater.zeroCrossingCallback();
 	exti_reset_request(EXTI0);
-}
-
-void _putchar(char ch) {
-	usart_send_blocking(USART2, ch);
 }
 
 int main()
@@ -74,30 +66,14 @@ int main()
 
 	TempSensor sensor(ADC1, 8, 320, 3270);
 
-	heater.setOnHalfcycles(5);
-
-	uint32_t error_wait = 0;
-	bool error_found = false;
-	heater.setControlPeriod(20);
-
 	DebugOut debug(USART2);
 
 	while (1) {
-		systick::Delay delay(100);
-		sensor.startConversion();
-		if (error_wait > 0) {
-			error_wait--;
-		} else {
-			error_found = false;
-			heater.setOnHalfcycles(5);
-		}
+		heater.turnOff();
+		systick::Delay delay(200);
+		sensor.performConversion();
 
-		heater.update(systick::getTicks());
-
-		if (!error_found && heater.getStatus() != AcControl::Status::Running) {
-			error_wait = 30;
-			error_found = true;
-		}
+		heater.turnOn(1);
 
 		DebugData d {
 			.tip_temp = sensor.getTemperature(),

@@ -5,7 +5,7 @@
 class TempSensor {
 public:
     TempSensor(uint32_t adc, uint32_t channel, uint32_t amp_gain, uint32_t vref_mv);
-    void startConversion();
+    void performConversion();
     uint32_t getTemperature();
     void setOffset(uint32_t offset);
 

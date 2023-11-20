@@ -54,8 +54,9 @@ TempSensor::TempSensor(uint32_t adc, uint32_t channel, uint32_t amp_gain, uint32
     adc_power_on(m_adc);
 }
 
-void TempSensor::startConversion() {
+void TempSensor::performConversion() {
     adc_start_conversion_regular(m_adc);
+    while (!adc_eoc(m_adc));
 }
 
 uint32_t TempSensor::getTemperature() {
