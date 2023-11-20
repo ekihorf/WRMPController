@@ -8,7 +8,7 @@
 #include <libopencm3/stm32/adc.h>
 #include "AcControl.h"
 #include "Debug.h"
-#include "SysTick.h"
+#include "Time.h"
 #include "TempSensor.h"
 #include "Pid.h"
 
@@ -51,7 +51,7 @@ int main()
 {
 	rcc_clock_setup(&rcc_clock_config[RCC_CLOCK_CONFIG_HSI_16MHZ]);
 	gpio_setup();
-	systick::setup();
+	time::setup(TIM16, RCC_TIM16);
 
 	TempSensor sensor(ADC1, 8, 320, 3270);
 	Pid pid(200);
@@ -62,11 +62,11 @@ int main()
 
 	while (1) {
 		heater.turnOff();
-		systick::Delay delay(200);
-		systick::Delay(1).wait();
+		time::Delay delay(200_ms);
+		time::Delay(1_ms).wait();
 		sensor.performConversion();
 		uint32_t tip_temp = sensor.getTemperature();
-		uint32_t output = pid.calculate(tip_temp, 250);
+		uint32_t output = pid.calculate(tip_temp, 300);
 		if (tip_temp < 500) {
 			heater.turnOn(output / 5);
 		}

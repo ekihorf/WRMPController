@@ -1,7 +1,7 @@
 #include "TempSensor.h"
 #include <libopencm3/stm32/adc.h>
 #include <libopencm3/stm32/rcc.h>
-#include "SysTick.h"
+#include "Time.h"
 
 // Lookup table for type D thermocouple
 // (emf in uV in 10*C increments)
@@ -38,9 +38,7 @@ TempSensor::TempSensor(uint32_t adc, uint32_t channel, uint32_t amp_gain, uint32
     adc_power_off(m_adc);
     adc_enable_regulator(m_adc);
 
-    // wait for the regulator 
-    // TODO: this delay is way too long (10us should be enough)
-    systick::Delay d(1);
+    time::Delay d(20_us);
     d.wait();
     
     adc_set_clk_source(m_adc, ADC_CLKSOURCE_ADC);
