@@ -15,9 +15,9 @@ namespace defaults {
         .standby_temp = 150_degC,
         .standby_delay = 60_s,
         .off_delay = 300_s,
-        .pid_kp = 1100,
-        .pid_ki = 100,
-        .pid_kd = 500,
+        .pid_kp = 1150,
+        .pid_ki = 40,
+        .pid_kd = 80,
         .tc_vref = 3295_mV,
         .tc_amp_gain = 330,
         .tc_offset = 20_degC
