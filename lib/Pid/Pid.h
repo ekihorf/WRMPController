@@ -12,7 +12,7 @@ public:
 
 private:
     int32_t m_i_term = 0;
-    int32_t m_last_input;
+    int32_t m_last_error;
     int32_t m_kp = 100;
     int32_t m_ki = 0;
     int32_t m_kd = 0;

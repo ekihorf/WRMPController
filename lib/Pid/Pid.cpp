@@ -13,10 +13,10 @@ int32_t Pid::calculate(int32_t input, int32_t setpoint) {
         m_i_term = m_min * mul;
     }
 
-    int32_t d_input = input - m_last_input;
-    m_last_input = input;
+    int32_t d_input = error - m_last_error;
+    m_last_error = error;
 
-    int32_t output = (m_kp * error + m_i_term - m_kd * d_input) / mul;
+    int32_t output = (m_kp * error + m_i_term + m_kd * d_input) / mul;
     if (output > m_max) {
         output = m_max;
     } else if (output < m_min)  {
@@ -29,8 +29,8 @@ int32_t Pid::calculate(int32_t input, int32_t setpoint) {
 void Pid::setTunings(int32_t kp, int32_t ki, int32_t kd) {
     m_i_term = 0;
     m_kp = kp;
-    m_ki = ki * m_interval_ms / mul;
-    m_kd = kd * mul / m_interval_ms;
+    m_ki = ki * m_interval_ms / 1000;
+    m_kd = kd * 1000 / m_interval_ms;
 }
 
 void Pid::setLimits(int32_t min, int32_t max) {
