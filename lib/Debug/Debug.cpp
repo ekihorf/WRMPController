@@ -2,7 +2,18 @@
 #include <libopencm3/stm32/usart.h>
 #include "Utils.h"
 
-DebugOut::DebugOut(uint32_t usart) : m_usart{usart} {};
+DebugOut::DebugOut(uint32_t usart, rcc_periph_clken usart_rcc)
+: m_usart{usart} {
+	rcc_periph_clock_enable(usart_rcc);
+    usart_set_baudrate(usart, 115200);
+	usart_set_databits(usart, 8);
+	usart_set_parity(usart, USART_PARITY_NONE);
+	usart_set_stopbits(usart, USART_CR2_STOPBITS_1);
+	usart_set_mode(usart, USART_MODE_TX);
+	usart_set_flow_control(usart, USART_FLOWCONTROL_NONE);
+
+	usart_enable(usart);
+};
 
 void DebugOut::sendData(DebugData& data) {
     char buf[16];

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <libopencm3/stm32/rcc.h>
 
 struct DebugData {
     uint32_t tip_temp;
@@ -10,7 +11,7 @@ struct DebugData {
 
 class DebugOut {
 public:
-    DebugOut(uint32_t usart);
+    DebugOut(uint32_t usart, rcc_periph_clken usart_rcc);
     void sendData(DebugData& data);
 
 private:
