@@ -278,7 +278,7 @@ int main()
 	standby_sensor.setDelays(device_state.settings.standby_delay, device_state.settings.off_delay);
 
 	iwdg_set_period_ms(1500);
-	// iwdg_start();
+	iwdg_start();
 	
 	Task control_task(5_ms, CONTROL_PERIOD, controlTaskFunc);
 	control_task.setData(&task_context);
