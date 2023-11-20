@@ -2,14 +2,11 @@
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/timer.h>
+#include <libopencm3/cm3/cortex.h>
+#include <etl/atomic.h>
 
-/* FIXME: This is going to overflow after 49 days.
-   It would probably make sense to use 64 bit counter here,
-   however this would require to use std::atomic since we are on 32-bit
-   platform. Will try it later, because I'm not going to run a soldering
-   iron continuously for 49 days.
-*/
-static volatile uint32_t g_ms_ticks = 0;
+// Never read this variable without disabling interrupts
+static uint64_t g_ms_ticks = 0;
 static uint32_t g_timer;
 
 void time::setup(time::Config& config) {
@@ -27,14 +24,17 @@ void time::setup(time::Config& config) {
 	timer_enable_counter(g_timer);
 }
 
-uint32_t time::getMsTicks() {
-    return g_ms_ticks;
+uint64_t time::getMsTicks() {
+	cm_disable_interrupts();
+	uint64_t ticks = g_ms_ticks;
+	cm_enable_interrupts();
+    return ticks;
 }
 
 time::Delay::Delay(Microsecond delay) {
 	if (delay.value > 65535) {
 		m_systick_delay = true;
-		m_start = g_ms_ticks;
+		m_start = getMsTicks();
 		m_raw_time = delay.value / 1000;
 	} else {
 		m_systick_delay = false;
@@ -49,7 +49,7 @@ void time::Delay::wait() {
 
 bool time::Delay::hasExpired() {
     if (m_systick_delay) {
-		return g_ms_ticks - m_start >= m_raw_time;
+		return getMsTicks() - m_start >= m_raw_time;
 	} else {
 		uint16_t diff = static_cast<uint16_t>(timer_get_counter(g_timer)) - static_cast<uint16_t>(m_start);
 		return diff >= static_cast<uint16_t>(m_raw_time);

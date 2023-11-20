@@ -21,7 +21,6 @@ void Task::run() {
 }
 
 bool Task::isReady() {
-    // FIXME: This is going to get fucked up when the tick counter overflows...
     return time::getMsTicks() >= m_next_run;
 }
 

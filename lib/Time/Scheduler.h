@@ -27,7 +27,7 @@ public:
 private:
     uint32_t m_max_duration_ms;
     uint32_t m_interval_ms;
-    uint32_t m_next_run = 0;
+    uint64_t m_next_run = 0;
     void *m_data = nullptr;
     TaskFunc m_func;
 

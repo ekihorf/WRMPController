@@ -12,7 +12,7 @@ namespace time {
     };
 
     void setup(Config& config);
-    uint32_t getMsTicks();
+    uint64_t getMsTicks();
 
     class Delay {
     public:
@@ -22,7 +22,7 @@ namespace time {
     
     private:
         bool m_systick_delay; 
-        uint32_t m_start;
+        uint64_t m_start;
         uint32_t m_raw_time;
     };
 }
