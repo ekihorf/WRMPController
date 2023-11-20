@@ -53,14 +53,14 @@ void CharDisplay::goTo(uint8_t row, uint8_t column) {
     writeCommand(0x80 | (column + 0x40 * row));
 }
 
-void CharDisplay::print(char *str) {
+void CharDisplay::print(const char *str) {
     while (*str) {
         writeData(*str);
         ++str;
     }
 }
 
-void CharDisplay::printN(char *str, size_t n) {
+void CharDisplay::printN(const char *str, size_t n) {
     for (size_t i = 0; i < n; ++i) {
         if (*str) {
             writeData(*(str++));

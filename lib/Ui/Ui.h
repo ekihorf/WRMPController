@@ -22,7 +22,7 @@ namespace ui {
     public:
         View(Ui& parent);
         virtual bool draw(Buffer& buffer) = 0;
-        virtual bool handleEvent(Event event) = 0;
+        virtual void handleEvent(Event event) = 0;
 
     protected:
         Ui& m_parent;
@@ -32,12 +32,12 @@ namespace ui {
     public:
         MainView(Ui& parent);
         bool draw(Buffer& buffer) override;
-        bool handleEvent(Event event) override;
+        void handleEvent(Event event) override;
     };
 
     class Parameter {
     public:
-        Parameter(char* name, char* unit);
+        Parameter(const char* name, const char* unit);
         virtual bool draw(Buffer& buffer) = 0;
         virtual void increment() = 0;
         virtual void decrement() = 0;
@@ -54,7 +54,7 @@ namespace ui {
     public:
         ParameterView(Ui& parent);
         bool draw(Buffer& buffer) override;
-        bool handleEvent(Event event) override;
+        void handleEvent(Event event) override;
         void setParameter(Parameter& parameter);
 
     private:
@@ -63,7 +63,7 @@ namespace ui {
 
     class I32Parameter : public Parameter {
     public:
-        I32Parameter(char* name, char* unit, int32_t& ref, int32_t min, int32_t max, size_t scale, int32_t step);
+        I32Parameter(const char* name, const char* unit, int32_t& ref, int32_t min, int32_t max, size_t scale, int32_t step);
     
     private:
         int32_t& m_ref;
@@ -83,7 +83,7 @@ namespace ui {
     public:
         SettingsView(Ui& parent);
         bool draw(Buffer& buffer) override;
-        bool handleEvent(Event event) override;
+        void handleEvent(Event event) override;
     
     private:
         etl::vector<Parameter*, 10> m_parameters;

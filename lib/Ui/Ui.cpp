@@ -6,9 +6,9 @@
 ui::View::View(Ui &parent) : m_parent{parent} {}
 
 ui::Ui::Ui(DeviceState& device_state)
-: m_device_state{device_state},
-  m_main_view{*this},
-  m_menu_view{*this} {}
+: m_main_view{*this},
+  m_menu_view{*this},
+  m_device_state{device_state} {}
 
 void ui::Ui::enterMainView() {
     m_current_view = &m_main_view;
@@ -63,7 +63,7 @@ bool ui::MainView::draw(Buffer &buffer) {
     return true;
 }
 
-bool ui::MainView::handleEvent(Event event) {
+void ui::MainView::handleEvent(Event event) {
     auto& ds = m_parent.getDeviceState();
     bool temp_changed = false;
     switch(event) {
@@ -103,8 +103,6 @@ bool ui::MainView::handleEvent(Event event) {
             ds.heating_status = HeatingStatus::On;
         }
     }
-
-    return true;
 }
 
 static int32_t param1 = 5;
@@ -146,7 +144,7 @@ bool ui::SettingsView::draw(Buffer &buffer) {
     return true;
 }
 
-bool ui::SettingsView::handleEvent(Event event) {
+void ui::SettingsView::handleEvent(Event event) {
     switch (event) {
     case Event::ButtonLongPress:
         m_parent.enterMainView();
@@ -164,12 +162,7 @@ bool ui::SettingsView::handleEvent(Event event) {
     case Event::EncoderCW:
         goDown();
         break;
-
-    default:
-        return false;
     }
-
-    return true;
 }
 
 void ui::SettingsView::goUp() {
@@ -192,7 +185,7 @@ void ui::SettingsView::goDown() {
     }
 }
 
-ui::Parameter::Parameter(char *name, char *unit) {
+ui::Parameter::Parameter(const char *name, const char *unit) {
     strncat(m_name, name, 15);
     strncat(m_unit, unit, 7);
 }
@@ -211,9 +204,9 @@ bool ui::ParameterView::draw(Buffer &buffer) {
     return m_parameter->draw(buffer);
 }
 
-bool ui::ParameterView::handleEvent(Event event) {
+void ui::ParameterView::handleEvent(Event event) {
     if (!m_parameter) {
-        return false;
+        return;
     }
 
     switch (event) {
@@ -227,6 +220,8 @@ bool ui::ParameterView::handleEvent(Event event) {
     case Event::EncoderCW:
         m_parameter->increment();
         break;
+    default:
+        break;
     }
 }
 
@@ -234,8 +229,8 @@ void ui::ParameterView::setParameter(Parameter &parameter) {
     m_parameter = &parameter;
 }
 
-ui::I32Parameter::I32Parameter(char *name, char *unit, int32_t &ref, int32_t min, int32_t max, size_t scale, int32_t step)
-: Parameter{name, unit}, m_ref{ref}, m_min{min}, m_max{max}, m_scale{scale}, m_step{step}, m_val{ref} {}
+ui::I32Parameter::I32Parameter(const char *name, const char *unit, int32_t &ref, int32_t min, int32_t max, size_t scale, int32_t step)
+: Parameter{name, unit}, m_ref{ref}, m_val{ref}, m_min{min}, m_max{max}, m_scale{scale}, m_step{step} {}
 
 bool ui::I32Parameter::draw(Buffer& buffer) {
     buffer.line1[0] = '\0';

@@ -140,9 +140,9 @@ static void debug_task_func(void* data) {
 	auto& d = *static_cast<TaskContext*>(data);
 
 	DebugData debug_data {
-		.tip_temp = d.state.tip_temp.asDegreesC(),
+		.tip_temp = static_cast<uint32_t>(d.state.tip_temp.asDegreesC()),
 		.cj_temp = 30,
-		.duty_cycle = d.state.tip_temp.asDegreesC()
+		.duty_cycle = static_cast<uint32_t>(d.state.tip_temp.asDegreesC())
 	};
 
 	d.debug.sendData(debug_data);
@@ -226,6 +226,7 @@ int main()
 		.set_temp = 200_degC,
 		.tip_temp = 0_degC,
 		.standby_temp = 150_degC,
+		.standby_delay = 120_s,
 		.heater_power = 0,
 		.heating_status = HeatingStatus::Off,
 		.temp_increment = 5_degC

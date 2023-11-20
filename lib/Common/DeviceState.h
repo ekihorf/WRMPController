@@ -13,6 +13,7 @@ struct DeviceState {
     Temperature set_temp;
     Temperature tip_temp;
     Temperature standby_temp;
+    Duration standby_delay;
     uint32_t heater_power;
     HeatingStatus heating_status;
 
