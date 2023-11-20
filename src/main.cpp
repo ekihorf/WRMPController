@@ -72,7 +72,7 @@ int main()
 	usart_setup();
 	systick::setup();
 
-	TempSensor sensor(ADC1, 8);
+	TempSensor sensor(ADC1, 8, 320, 3270);
 
 	heater.setOnHalfcycles(5);
 
