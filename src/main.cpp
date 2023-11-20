@@ -268,14 +268,34 @@ int main()
 	DeviceState device_state {
 		.set_temp = 200_degC,
 		.tip_temp = 0_degC,
-		.standby_temp = 150_degC,
-		.standby_delay = 120_s,
 		.heater_power = 0,
 		.heating_status = HeatingStatus::Off,
-		.temp_increment = 5_degC
+		.temp_updated = false,
+		.settings = defaults::SETTINGS
 	};
 
 	ui::Ui main_ui(device_state);
+
+	ui::Parameter param_temp_increment("Temp. increment", "\337C", device_state.settings.temp_increment.value, 5, 20, 5);
+	ui::Parameter param_standby_temp("Standby temp.", "\337C", device_state.settings.standby_temp.value, 100, 250, 5);
+	ui::Parameter param_standby_delay("Standby delay", "S", reinterpret_cast<int32_t&>(device_state.settings.standby_delay.value), 0, 600'000'000, 10'000'000, 6, false);
+	ui::Parameter param_off_delay("Off delay", "S", reinterpret_cast<int32_t&>(device_state.settings.off_delay.value), 0, 600'000'000, 10'000'000, 6, false);
+	ui::Parameter param_tc_vref("TC Vref", "mV", reinterpret_cast<int32_t&>(device_state.settings.tc_vref.value), 3200, 3400, 1);
+	ui::Parameter param_tc_offset("TC offset", "\337C", device_state.settings.tc_offset.value, -100, 100, 1);
+	ui::Parameter param_tc_amp_gain("TC amp gain", "", device_state.settings.tc_amp_gain, 250, 400, 1);
+	ui::Parameter param_pid_kp("PID Kp", "", device_state.settings.pid_kp, 100, 1800, 10, 3);
+	ui::Parameter param_pid_ki("PID Ki", "", device_state.settings.pid_ki, 100, 1800, 10, 3);
+	ui::Parameter param_pid_kd("PID Kd", "", device_state.settings.pid_kd, 100, 1800, 10, 3);
+	main_ui.addParameter(param_temp_increment);
+	main_ui.addParameter(param_standby_temp);
+	main_ui.addParameter(param_standby_delay);
+	main_ui.addParameter(param_off_delay);
+	main_ui.addParameter(param_tc_vref);
+	main_ui.addParameter(param_tc_offset);
+	main_ui.addParameter(param_tc_amp_gain);
+	main_ui.addParameter(param_pid_kp);
+	main_ui.addParameter(param_pid_ki);
+	main_ui.addParameter(param_pid_kd);
 
 	Context task_context {
 		.pid = pid,

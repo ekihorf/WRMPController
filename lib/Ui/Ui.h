@@ -18,6 +18,27 @@ namespace ui {
 
     class Ui;
 
+    class Parameter {
+    public:
+        Parameter(const char* name, const char* unit, int32_t& ref, int32_t min, int32_t max, int32_t step, size_t scale = 0, bool show_frac = true);
+        char *getName();
+        bool draw(Buffer& buffer);
+        void increment();
+        void decrement();
+        void save();
+
+    private:
+        char m_name[16] = {0};
+        char m_unit[8] = {0};  
+        int32_t& m_ref;
+        int32_t m_val;
+        int32_t m_min;
+        int32_t m_max;
+        size_t m_scale;
+        int32_t m_step;
+        bool m_show_frac;
+    };
+
     class View {
     public:
         View(Ui& parent);
@@ -35,21 +56,6 @@ namespace ui {
         void handleEvent(Event event) override;
     };
 
-    class Parameter {
-    public:
-        Parameter(const char* name, const char* unit);
-        virtual bool draw(Buffer& buffer) = 0;
-        virtual void increment() = 0;
-        virtual void decrement() = 0;
-        virtual void save() = 0;
-        
-        char* getName();
-
-    protected:
-        char m_name[16] = {0};
-        char m_unit[8] = {0};       
-    };
-
     class ParameterView : public View {
     public:
         ParameterView(Ui& parent);
@@ -61,29 +67,14 @@ namespace ui {
         Parameter* m_parameter{nullptr}; 
     };
 
-    class I32Parameter : public Parameter {
-    public:
-        I32Parameter(const char* name, const char* unit, int32_t& ref, int32_t min, int32_t max, size_t scale, int32_t step);
     
-    private:
-        int32_t& m_ref;
-        int32_t m_val;
-        int32_t m_min;
-        int32_t m_max;
-        size_t m_scale;
-        int32_t m_step;
-
-        bool draw(Buffer& buffer) override;
-        void increment() override;
-        void decrement() override;
-        void save() override;
-    };
 
     class SettingsView : public View {
     public:
         SettingsView(Ui& parent);
         bool draw(Buffer& buffer) override;
         void handleEvent(Event event) override;
+        void addParameter(Parameter& param);
     
     private:
         etl::vector<Parameter*, 10> m_parameters;
@@ -104,6 +95,7 @@ namespace ui {
         bool draw(Buffer& buffer);
         void handleEvent(Event event);
         DeviceState& getDeviceState();
+        void addParameter(Parameter& param);
 
     private:
         MainView m_main_view;

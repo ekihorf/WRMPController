@@ -34,6 +34,10 @@ void ui::Ui::enterView(View &view) {
     m_current_view = &view;
 }
 
+void ui::Ui::addParameter(Parameter &param) {
+    m_menu_view.addParameter(param);
+}
+
 ui::MainView::MainView(Ui &parent) : ui::View{parent} {}
 
 bool ui::MainView::draw(Buffer &buffer) {
@@ -52,7 +56,7 @@ bool ui::MainView::draw(Buffer &buffer) {
         memcpy(buffer.line1, "Standby        C", 16);
         buffer.line1[14] = 0xDF; // degree symbol
         buffer.line1[10] = 'S'; // TODO: replace with custom symbol
-        utils::uintToStr(buffer.line1 + 11, ds.standby_temp.asDegreesC(), 3); 
+        utils::uintToStr(buffer.line1 + 11, ds.settings.standby_temp.asDegreesC(), 3); 
     }
 
     memcpy(buffer.line2, "P   %          C", 16);
@@ -80,12 +84,12 @@ void ui::MainView::handleEvent(Event event) {
         break;
     
     case Event::EncoderCW:
-        ds.set_temp += ds.temp_increment;
+        ds.set_temp += ds.settings.temp_increment;
         temp_changed = true;
         break;
 
     case Event::EncoderCCW:
-        ds.set_temp -= ds.temp_increment;
+        ds.set_temp -= ds.settings.temp_increment;
         temp_changed = true;
         break;
     } 
@@ -107,19 +111,7 @@ void ui::MainView::handleEvent(Event event) {
     }
 }
 
-static int32_t param1 = 5;
-static int32_t param2 = 10;
-static int32_t param3 = 16;
-ui::I32Parameter p1("width", "cm", param1, -200, 200, 2, 10);
-ui::I32Parameter p2("height", "m", param2, 0, 20, 0, 1);
-ui::I32Parameter p3("length", "km", param3, -20, 20, 0, 1);
-
-
-ui::SettingsView::SettingsView(Ui &parent) : ui::View{parent} {
-    m_parameters.push_back(&p1);
-    m_parameters.push_back(&p2);
-    m_parameters.push_back(&p3);
-}
+ui::SettingsView::SettingsView(Ui &parent) : ui::View{parent} {}
 
 bool ui::SettingsView::draw(Buffer &buffer) {
     if (m_selected_parameter == m_scroll_position) {
@@ -167,7 +159,12 @@ void ui::SettingsView::handleEvent(Event event) {
     }
 }
 
-void ui::SettingsView::goUp() {
+void ui::SettingsView::addParameter(Parameter &param) {
+    m_parameters.push_back(&param);
+}
+
+void ui::SettingsView::goUp()
+{
     if (m_selected_parameter > 0) {
         --m_selected_parameter;
     }
@@ -185,15 +182,6 @@ void ui::SettingsView::goDown() {
     if (m_selected_parameter > m_scroll_position + 1) {
         m_scroll_position = m_selected_parameter - 1;
     }
-}
-
-ui::Parameter::Parameter(const char *name, const char *unit) {
-    strncat(m_name, name, 15);
-    strncat(m_unit, unit, 7);
-}
-
-char *ui::Parameter::getName() {
-    return m_name;
 }
 
 ui::ParameterView::ParameterView(Ui &parent) : View{parent} {}
@@ -231,17 +219,30 @@ void ui::ParameterView::setParameter(Parameter &parameter) {
     m_parameter = &parameter;
 }
 
-ui::I32Parameter::I32Parameter(const char *name, const char *unit, int32_t &ref, int32_t min, int32_t max, size_t scale, int32_t step)
-: Parameter{name, unit}, m_ref{ref}, m_val{ref}, m_min{min}, m_max{max}, m_scale{scale}, m_step{step} {}
+ui::Parameter::Parameter(const char *name, const char *unit, int32_t &ref, int32_t min, int32_t max, int32_t step, size_t scale, bool show_frac)
+: m_ref{ref}, m_val{ref}, m_min{min}, m_max{max}, m_step{step}, m_scale{scale}, m_show_frac{show_frac} {
+    strncat(m_name, name, 15);
+    strncat(m_unit, unit, 7);
+}
 
-bool ui::I32Parameter::draw(Buffer& buffer) {
+char *ui::Parameter::getName()
+{
+    return m_name;
+}
+
+bool ui::Parameter::draw(Buffer &buffer)
+{
     buffer.line1[0] = '\0';
     strncat(buffer.line1, m_name, 15);
 
-    if (m_scale) {
+    if (m_scale && m_show_frac) {
         utils::fixedIntToStr(buffer.line2, m_val, 8, m_scale);
     } else {
-        utils::intToStr(buffer.line2, m_val, 8);
+        int32_t scale = 1;
+        for (int i = 0; i < m_scale; ++i) {
+            scale *= 10;
+        }
+        utils::intToStr(buffer.line2, m_val / scale, 8);
     }
     buffer.line2[8] = ' ';
     buffer.line2[9] = '\0';
@@ -250,21 +251,21 @@ bool ui::I32Parameter::draw(Buffer& buffer) {
     return true;
 }
 
-void ui::I32Parameter::increment() {
+void ui::Parameter::increment() {
     m_val += m_step;
     if (m_val > m_max) {
         m_val = m_max;
     }
 }
 
-void ui::I32Parameter::decrement() {
+void ui::Parameter::decrement() {
     m_val -= m_step;
     if (m_val < m_min) {
         m_val = m_min;
     }
 }
 
-void ui::I32Parameter::save() {
+void ui::Parameter::save() {
     if (m_val > m_max) { m_val = m_max; };
     if (m_val < m_min) { m_val = m_min; };
     m_ref = m_val;

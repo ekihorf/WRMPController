@@ -9,7 +9,6 @@ public:
     constexpr uint32_t asMilliseconds() { return value / 1'000; };
     constexpr uint32_t asSeconds() { return value / 1'000'000; };
 
-private:
     uint32_t value;
 };
 
@@ -61,7 +60,6 @@ public:
         value -= other.value;
     }
 
-private:
     int32_t value;
 };
 
@@ -76,7 +74,6 @@ public:
         return value;
     }
 
-private:
     uint32_t value;
 };
 

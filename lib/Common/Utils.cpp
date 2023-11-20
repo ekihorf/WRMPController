@@ -21,7 +21,7 @@ void utils::intToStr(char *buf, int32_t val, size_t width, char pad) {
         if (digit) {
             buf[i] = digit + '0';
         } else {
-            if (i == unity_pos) {
+            if (i == unity_pos || aval) {
                 buf[i] = '0';
             } else {
                 buf[i] = minus ? '-' : pad;
@@ -46,7 +46,7 @@ void utils::fixedIntToStr(char *buf, int32_t val, size_t width, size_t scale, ch
         if (digit) {
             buf[i] = digit + '0';
         } else {
-            if (i >= unity_pos-1) {
+            if (i >= unity_pos-1 || aval) {
                 buf[i] = '0';
             } else {
                 buf[i] = minus ? '-' : pad;
