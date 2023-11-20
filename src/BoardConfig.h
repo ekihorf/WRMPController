@@ -6,6 +6,7 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/adc.h>
+#include <libopencm3/stm32/usart.h>
 #include <DeviceState.h>
 #include <Time.h>
 #include <I2cDma.h>

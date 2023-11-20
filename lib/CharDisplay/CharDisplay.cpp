@@ -33,6 +33,7 @@ CharDisplay::CharDisplay(I2cDma& i2cdma, const Config& config)
     writeCommand(0x06);
 
     onOffControl(true, false, false);
+    flushBuffer();
 }
 
 void CharDisplay::onOffControl(bool display_on, bool cursor_on, bool blink_on) {

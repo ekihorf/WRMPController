@@ -1,5 +1,4 @@
 #include <libopencm3/stm32/rcc.h>
-#include <libopencm3/stm32/usart.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/iwdg.h>
@@ -11,22 +10,6 @@
 #include "Ui.h"
 #include "DeviceState.h"
 #include "Constants.h"
-
-static void gpio_setup()
-{
-	rcc_periph_clock_enable(RCC_GPIOA);
-	rcc_periph_clock_enable(RCC_TIM14);
-	rcc_periph_clock_enable(RCC_TIM16);
-	rcc_periph_clock_enable(RCC_TIM3);
-	rcc_periph_clock_enable(RCC_CRC);
-	nvic_enable_irq(NVIC_EXTI0_1_IRQ);
-
-	rcc_periph_clock_enable(RCC_I2C2);
-	rcc_periph_clock_enable(RCC_DMA1);
-	nvic_enable_irq(NVIC_DMA1_CHANNEL1_IRQ);
-
-	rcc_periph_clock_enable(RCC_USART2);
-}
 
 struct Context {
 	Pid& pid;
@@ -42,7 +25,23 @@ struct Context {
 	StandbySensor& standby_sensor;
 };
 
-static void pid_task_func(void* data) {
+static void enablePeripherals()
+{
+	rcc_periph_clock_enable(RCC_GPIOA);
+	rcc_periph_clock_enable(RCC_TIM14);
+	rcc_periph_clock_enable(RCC_TIM16);
+	rcc_periph_clock_enable(RCC_TIM3);
+	rcc_periph_clock_enable(RCC_CRC);
+	nvic_enable_irq(NVIC_EXTI0_1_IRQ);
+
+	rcc_periph_clock_enable(RCC_I2C2);
+	rcc_periph_clock_enable(RCC_DMA1);
+	nvic_enable_irq(NVIC_DMA1_CHANNEL1_IRQ);
+
+	rcc_periph_clock_enable(RCC_USART2);
+}
+
+static void controlTaskFunc(void* data) {
 	auto& d = *static_cast<Context*>(data);
 
 	d.heater.turnOff();
@@ -78,10 +77,9 @@ static void pid_task_func(void* data) {
 	}
 }
 
-char disp_buf[8] = {};
-ui::Buffer ui_buf;
+static ui::Buffer ui_buf;
 
-static void ui_task_func(void* data) {
+static void uiTaskFunc(void* data) {
 	auto& d = *static_cast<Context*>(data);
 	iwdg_reset(); // TODO: is this the right place for this?
 
@@ -116,7 +114,7 @@ static void ui_task_func(void* data) {
 	d.display.flushBuffer();
 }
 
-static void btn_task_func(void* data) {
+static void btnTaskFunc(void* data) {
 	auto& d = *static_cast<Context*>(data);
 
 	auto event = d.button.update();
@@ -131,7 +129,7 @@ static void btn_task_func(void* data) {
 	}
 }
 
-static void debug_task_func(void* data) {
+static void debugTaskFunc(void* data) {
 	auto& d = *static_cast<Context*>(data);
 
 	Debug::Data debug_data {
@@ -143,12 +141,12 @@ static void debug_task_func(void* data) {
 	d.debug.sendData(debug_data);
 }
 
-static void msg(Context& ctx, const char* text) {
+static void printMsg(Context& ctx, const char* text) {
 	ctx.display.goTo(0, 0);
 	ctx.display.printNBlocking(text, 16);
 }
 
-static void load_settings(Context& ctx) {
+static void loadSettings(Context& ctx) {
 	bool result = ctx.nvs.readLts(&ctx.state.settings);
 	if (result && !ctx.button.isPressedRaw()) {
 		auto sts = ctx.nvs.readSts();
@@ -161,12 +159,12 @@ static void load_settings(Context& ctx) {
 		return;
 	}
 
-	msg(ctx, "EEPROM INIT...");
+	printMsg(ctx, "EEPROM INIT...");
 	time::Delay(200_ms).wait();
 
 	result = ctx.nvs.erase();
 	if (!result) {
-		msg(ctx, "EEPROM ERROR 01");
+		printMsg(ctx, "EEPROM ERROR 01");
 		while (true)
 			;
 	}
@@ -174,12 +172,12 @@ static void load_settings(Context& ctx) {
 	ctx.state.settings = defaults::SETTINGS;
 	result = ctx.nvs.writeLts(&ctx.state.settings);
 	if (!result) {
-		msg(ctx, "EEPROM ERROR 02");
+		printMsg(ctx, "EEPROM ERROR 02");
 		while (true)
 			;
 	}
 
-	msg(ctx, "EEPROM INIT OK");
+	printMsg(ctx, "EEPROM INIT OK");
 	time::Delay(1_s).wait();
 }
 
@@ -187,30 +185,28 @@ int main()
 {
 	rcc_clock_setup(&rcc_clock_config[RCC_CLOCK_CONFIG_HSI_16MHZ]);
 	
-	gpio_setup();
+	enablePeripherals();
 
 	time::setup(time_config);
 
-	I2cDma i2c(i2c_config);
-	AcControl heater(heater_config);
-	
+	I2cDma i2c(i2c_config);	
+	// Wait for the display to initialize before sending commands
 	time::Delay(50_ms).wait();
-
 	CharDisplay display(i2c, disp_config);
-	display.flushBuffer();
 
+	AcControl heater(heater_config);
 	Encoder encoder(encoder_config);
 	TempSensor temp_sensor(temp_config);
 	StandbySensor standby_sensor(standby_config);
-
-	Pid pid(CONTROL_PERIOD);
-	pid.setLimits(0, MAX_HEATER_POWER);
-
 	Nvs nvs(i2c, nvs_config);
 	Debug debug(debug_config);
 	Button button(button_config);
 
+	Pid pid(CONTROL_PERIOD);
+	pid.setLimits(0, MAX_HEATER_POWER);
+
 	DeviceState device_state {
+		// This will be overriden with the data from EEPROM later
 		.set_temp = 200_degC,
 		.tip_temp = 0_degC,
 		.heater_power = 0,
@@ -257,8 +253,9 @@ int main()
 		.standby_sensor = standby_sensor
 	};
 
+	// Make sure that the I2C transfer to the display finished
 	time::Delay(50_ms).wait();
-	load_settings(task_context);
+	loadSettings(task_context);
 
 	pid.setTunings(device_state.settings.pid_kp, device_state.settings.pid_ki, device_state.settings.pid_kd);
 	temp_sensor.setAmpGain(device_state.settings.tc_amp_gain);
@@ -269,18 +266,18 @@ int main()
 	iwdg_set_period_ms(1500);
 	iwdg_start();
 	
-	Task pid_task(5_ms, CONTROL_PERIOD, pid_task_func);
-	pid_task.setData(&task_context);
-	Task ui_task(5_ms, 100_ms, ui_task_func);
+	Task control_task(5_ms, CONTROL_PERIOD, controlTaskFunc);
+	control_task.setData(&task_context);
+	Task ui_task(5_ms, 100_ms, uiTaskFunc);
 	ui_task.setData(&task_context);
-	Task debug_task(5_ms, 500_ms, debug_task_func);
+	Task debug_task(5_ms, 500_ms, debugTaskFunc);
 	debug_task.setData(&task_context);
-	Task button_task(1_ms, 5_ms, btn_task_func);
+	Task button_task(1_ms, 5_ms, btnTaskFunc);
 	button_task.setData(&task_context);
 
 	Scheduler scheduler;
 	scheduler.addTask(ui_task);
-	scheduler.addTask(pid_task);
+	scheduler.addTask(control_task);
 	scheduler.addTask(debug_task);
 	scheduler.addTask(button_task);
 
