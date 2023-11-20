@@ -4,8 +4,11 @@
 #include <libopencm3/stm32/usart.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
+#include <libopencm3/stm32/adc.h>
 #include "AcControl.h"
 #include "Debug.h"
+#include "SysTick.h"
+#include "TempSensor.h"
 
 #define PORT_LED GPIOA
 #define PIN_LED GPIO1
@@ -14,8 +17,6 @@
 #define PIN_ZERO GPIO0
 
 AcControl heater(PORT_ZERO, PIN_ZERO, PORT_LED, PIN_LED);
-
-volatile uint32_t ticks = 0;
 
 static void gpio_setup()
 {
@@ -60,10 +61,6 @@ extern "C" void exti0_1_isr(void) {
 	exti_reset_request(EXTI0);
 }
 
-extern "C" void sys_tick_handler(void) {
-	++ticks;
-}
-
 void _putchar(char ch) {
 	usart_send_blocking(USART2, ch);
 }
@@ -73,10 +70,9 @@ int main()
 	rcc_clock_setup(&rcc_clock_config[RCC_CLOCK_CONFIG_HSI_16MHZ]);
 	gpio_setup();
 	usart_setup();
-	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
-	systick_set_reload(rcc_ahb_frequency / 1000);
-	systick_counter_enable();
-	systick_interrupt_enable();
+	systick::setup();
+
+	TempSensor sensor(ADC1, 8);
 
 	heater.setOnHalfcycles(5);
 
@@ -87,7 +83,8 @@ int main()
 	DebugOut debug(USART2);
 
 	while (1) {
-		uint32_t wake = ticks + 100;
+		systick::Delay delay(100);
+		sensor.startConversion();
 		if (error_wait > 0) {
 			error_wait--;
 		} else {
@@ -95,7 +92,7 @@ int main()
 			heater.setOnHalfcycles(5);
 		}
 
-		heater.update(ticks);
+		heater.update(systick::getTicks());
 
 		if (!error_found && heater.getStatus() != AcControl::Status::Running) {
 			error_wait = 30;
@@ -103,14 +100,14 @@ int main()
 		}
 
 		DebugData d {
-			.tip_temp = 314,
+			.tip_temp = sensor.getTemperature(),
 			.cj_temp = 30,
 			.duty_cycle = 20
 		};
 
 		debug.sendData(d);
 
-		while (wake > ticks);
+		delay.wait();
 	}
 
 	return 0;
