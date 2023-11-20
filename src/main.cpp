@@ -101,25 +101,11 @@ static void ui_task_func(void* data) {
 	}
 
 	d.ui.draw(ui_buf);
+
 	d.display.goTo(0, 0);
 	d.display.printN(ui_buf.line1, 16);
-
 	d.display.goTo(1, 0);
 	d.display.printN(ui_buf.line2, 16);
-	// d.display.goTo(0, 0);
-	// d.display.print("Set temp: ");
-	// utils::uintToStr(disp_buf, d.set_temp, 3);
-	// disp_buf[3] = 0xDF;
-	// disp_buf[4] = 'C';
-
-	// d.display.print(disp_buf);
-
-	// d.display.goTo(1, 0);
-	// d.display.print("Cur temp: ");
-	// utils::uintToStr(disp_buf, d.tip_temp, 3);
-	// disp_buf[3] = 0xDF;
-	// disp_buf[4] = 'C';
-	// d.display.print(disp_buf);
 	
 	d.display.flushBuffer();
 }
@@ -208,8 +194,8 @@ int main()
 	TempSensor::Config temp_config {
 		.adc = ADC1,
 		.channel = 8,
-		.amp_gain = 315,
-		.vref = 3270_mV
+		.amp_gain = 340,
+		.vref = 3295_mV
 	};
 	TempSensor sensor(temp_config);
 	sensor.setOffset(15_degC);

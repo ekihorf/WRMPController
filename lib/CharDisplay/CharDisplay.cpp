@@ -115,9 +115,6 @@ void CharDisplay::i2cWrite(uint8_t data) {
         data |= Backlight_bit;
     }
 
-    // i2c_transfer7(m_i2c, m_i2c_addr, &data, 1, nullptr, 0);
-    // time::Delay(10_us).wait();    
-
     if (m_i2c_buf_pos < 255) {
         m_i2c_buf[m_i2c_buf_pos++] = data;
     }
