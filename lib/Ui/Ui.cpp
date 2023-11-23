@@ -108,10 +108,6 @@ void ui::MainView::handleEvent(Event event) {
             ds.set_temp = MIN_TIP_TEMP;
         }
 
-        if (ds.heating_status == HeatingStatus::Standby) {
-            ds.heating_status = HeatingStatus::On;
-        }
-
         ds.temp_updated = true;
     }
 }
